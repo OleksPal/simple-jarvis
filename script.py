@@ -10,13 +10,16 @@ warnings.filterwarnings(
 from piper import PiperVoice
 import torch
 from silero_vad import load_silero_vad
+from sentence_transformers import SentenceTransformer
+from transformers.utils import logging
 
 from src.voice_recording import record_audio
-from src.voice_recognition import transcribe
-from src.utils import create_speech_recognition_model, RED, GREEN, RESET
+from src.voice_recognition import transcribe, create_speech_recognition_model
+from src.utils import RED, GREEN, RESET
 from src.tts import speak
 
-from src.command_manager import load_commands, find_best_command, execute_command
+from src.command_manager import load_commands, execute_command, get_phrases
+from src.command_resolver import encode_options, get_command
 
 print("Запускаю Jarvis...")
 print()
@@ -31,6 +34,7 @@ else:
     input("Натисніть ENTER для виходу...")
     print()
 
+# Setup
 microphone_id = int(data.get("microphone_id", 0))
 use_cuda = data.get("use_cuda", False)
 model_size = data.get("speech_recognition_model", "small")
@@ -62,6 +66,14 @@ else:
     input("Натисніть ENTER для виходу...")
     print()
 
+# Resolver setup
+logging.disable_progress_bar()
+
+MODEL_PATH = "resources/semantic_model"
+resolver_model = SentenceTransformer(MODEL_PATH, local_files_only=True)
+phrases = get_phrases(COMMANDS)
+encoded_options = encode_options(resolver_model, phrases)
+
 while True:
     print()
     speak(voice, "Слухаю")
@@ -74,28 +86,24 @@ while True:
     if audio.size == 0:
         continue
 
-    speak(voice, "Розшифровую")
     print("Jarvis: Розшифровую...")
 
     words = transcribe(model, audio)
 
     print("Jarvis: Почув -", " ".join(words))
 
-    command_name, score = find_best_command(
-        words,
-        COMMANDS,
-        threshold=0.60,
+    command_name = get_command(resolver_model, encoded_options,
+        phrases, " ".join(words), COMMANDS
     )
 
     if command_name is None:
-        print(f"[{RED}FAILED{RESET}] Невідома команда: ({RED}{score * 100:.1f}%{RESET})")
+        print(f"[{RED}FAILED{RESET}] Невідома команда")
         speak(voice, "Не зрозумів повторіть ще раз")
     else:
         print(
-            f"[{GREEN}OK{RESET}] Виконую: {command_name} "
-            f"({GREEN}{score * 100:.1f}%{RESET})"
+            f"[{GREEN}OK{RESET}] Виконую: {command_name}"
         )
 
         speak(voice, "Виконую")
-        execute_command(COMMANDS[command_name])
+        execute_command(COMMANDS["commands"][command_name])
         

@@ -1,45 +1,29 @@
 import json
 import subprocess
 import webbrowser
-from pathlib import Path
-
-from src.recognition_comparator import compare_with_etalon
-
 
 def load_commands(filename):
     with open(filename, "r", encoding="utf-8") as file:
         return json.load(file)
 
+def get_command_name(phrase: str, config: dict) -> str | None:
+    cleaned_phrase = phrase.strip().lower()
+    
+    for command_name, data in config.get("commands", {}).items():
+        if cleaned_phrase in [p.lower() for p in data.get("phrases", [])]:
+            return command_name
+            
+    return None
 
-def find_best_command(
-    recognized: list[str],
-    commands: dict,
-    threshold: float = 0.60,
-):
-    best_command = None
-    best_score = 0.0
-
-    for command_name, command in commands.items():
-
-        for phrase in command["phrases"]:
-
-            # Convert JSON phrase to tokens
-            expected = phrase.split()
-
-            score, _ = compare_with_etalon(
-                recognized,
-                expected,
-            )
-
-            if score > best_score:
-                best_score = score
-                best_command = command_name
-
-    if best_score < threshold:
-        return None, best_score
-
-    return best_command, best_score
-
+def get_phrases(config):
+    commands_dict = config.get("commands", config)
+    
+    return [
+        phrase
+        for command in commands_dict.values()
+        if isinstance(command, dict)
+        for phrase in command.get("phrases", []) 
+    ]
 
 def execute_command(command):
     action = command["action"]
@@ -55,15 +39,16 @@ def execute_command(command):
     elif action_type == "browser":
         open_browser(action["url"])
 
+    elif action_type == "close_jarvis":
+        close_jarvis()
+
     else:
         raise ValueError(
             f"Невідома дія: {action_type}"
         )
 
-
 def launch_program(path: str):
     subprocess.Popen(path)
-
 
 def close_program(path):
     subprocess.run([
@@ -73,6 +58,8 @@ def close_program(path):
         f"Invoke-CimMethod -MethodName Terminate"
     ])
 
+def close_jarvis():
+    exit()
 
 def open_browser(url: str):
     webbrowser.open_new_tab(url)

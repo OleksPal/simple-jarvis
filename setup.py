@@ -1,15 +1,38 @@
-import time
-import json
 import sys
 import subprocess
+from src.utils import is_cuda_gpu_enable, add_jarvis_to_startup, install_pytorch, RED, GREEN, YELLOW, RESET
+
+install_pytorch()
+
+import time
+import json
 from pathlib import Path
-import winreg
 
 from piper import PiperVoice
+from sentence_transformers import SentenceTransformer
 
 from src.check_microphone import get_input_endpoints, record_from_endpoints
-from src.utils import create_speech_recognition_model, find_best_microphone, is_cuda_gpu_enable, RED, GREEN, YELLOW, RESET
 from src.tts import speak
+from src.voice_recognition import create_speech_recognition_model, find_best_microphone
+
+print("Розпочато налаштування Jarvis...")
+print()
+
+# ---------------------------------------------------------------------------
+# Download semantic model
+# ---------------------------------------------------------------------------
+
+MODEL_PATH = "resources/semantic_model"
+
+print("Початок завантаження семантичної моделі...")
+print()
+
+resolver_model = SentenceTransformer("all-MiniLM-L6-v2")
+resolver_model.save(MODEL_PATH)
+
+print()
+print(f"[{GREEN}OK{RESET}] Семантичну модель завантажено")
+print()
 
 # ---------------------------------------------------------------------------
 # Find the best microphone
@@ -18,10 +41,7 @@ from src.tts import speak
 OUTPUT_DIR = Path("microphone_test")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-ETALON_TEXT = ["Привіт", "це", "тест", "мікрофона", "Я", "перевіряю", "якість", "запису", "голосу"]
-
-print("Розпочато налаштування Jarvis...")
-print()
+ETALON_TEXT = ["Привіт це тест мікрофона Я перевіряю якість запису голосу"]
 
 endpoints = get_input_endpoints()
 
@@ -89,7 +109,7 @@ speech_recognition_model = create_speech_recognition_model()
 folder = Path("microphone_test")
 wav_files = list(folder.glob("*.wav"))
 
-best_microphone_id = find_best_microphone(speech_recognition_model, wav_files, ETALON_TEXT)
+best_microphone_id = find_best_microphone(speech_recognition_model, wav_files, ETALON_TEXT, resolver_model)
 best_microphone = next(
     (
         endpoint for endpoint in endpoints
@@ -130,42 +150,42 @@ commands_file_path = Path("config/commands.json")
 
 if not commands_file_path.exists():
     path = Path(__file__).resolve()
-
     script_path = path.with_name("script.py")
 
     data = {
-        "YouTube": {
-            "phrases": [
-                "відкрий ютуб",
-                "запусти ютуб"
-            ],
-            "action": {
-                "type": "browser",
-                "url": "https://www.youtube.com"
-            }
-        },
+        "commands": {
+            "YouTube": {
+                "phrases": [
+                    "відкрий ютуб",
+                    "запусти ютуб"
+                ],
+                "action": {
+                    "type": "browser",
+                    "url": "https://www.youtube.com"
+                }
+            },
 
-        "Блокнот": {
-            "phrases": [
-                "відкрий блокнот",
-                "запусти блокнот"
-            ],
-            "action": {
-                "type": "program",
-                "path": "notepad.exe"
-            }
-        },
+            "Блокнот": {
+                "phrases": [
+                    "відкрий блокнот",
+                    "запусти блокнот"
+                ],
+                "action": {
+                    "type": "program",
+                    "path": "notepad.exe"
+                }
+            },
 
-        "Закрити Jarvis": {
-            "phrases": [
-                "стоп",
-                "закрити"
-            ],
-            "action": {
-                "type": "close_program",
-                "path": str(script_path)
+            "Закрити Jarvis": {
+                "phrases": [
+                    "стоп",
+                    "закрити"
+                ],
+                "action": {
+                    "type": "close_jarvis"
+                }
             }
-        },
+        }
     }
 
     with open("config/commands.json", "w", encoding="utf-8") as file:
@@ -177,21 +197,7 @@ if not commands_file_path.exists():
 # Add Jarvis to Windows Startup
 # ---------------------------------------------------------------------------
 
-path = Path(__file__).resolve()
-
-script_path = path.with_name("script.py")
-
-key = winreg.OpenKey(
-    winreg.HKEY_CURRENT_USER,
-    r"Software\Microsoft\Windows\CurrentVersion\Run",
-    0,
-    winreg.KEY_SET_VALUE
-)
-
-winreg.SetValueEx(key, "MyPythonProgram", 0, winreg.REG_SZ,
-                  f'python "{str(script_path)}"')
-
-winreg.CloseKey(key)
+add_jarvis_to_startup()
 
 print(f"[{GREEN}OK{RESET}] Jarvis додано до Windows автозапуск")
 
