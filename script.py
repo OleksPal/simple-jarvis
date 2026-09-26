@@ -12,6 +12,7 @@ import torch
 from silero_vad import load_silero_vad
 from sentence_transformers import SentenceTransformer
 from transformers.utils import logging
+from openwakeword.model import Model
 
 from src.voice_recording import record_audio
 from src.voice_recognition import transcribe, create_speech_recognition_model
@@ -20,6 +21,33 @@ from src.tts import speak
 
 from src.command_manager import load_commands, execute_command, get_phrases
 from src.command_resolver import encode_options, get_command
+from src.wake_word_detector import wait_for_wake_word
+from src.audio_manager import AudioManager
+
+def handle_command(text):
+    command_name = get_command(
+        resolver_model,
+        encoded_options,
+        phrases,
+        text,
+        COMMANDS,
+    )
+
+    if command_name is None:
+        print(f"[{RED}FAILED{RESET}] Невідома команда")
+        speak(voice, "Не зрозумів, повторіть ще раз")
+        return
+
+    print(
+        f"[{GREEN}OK{RESET}] Виконую: {command_name}"
+    )
+
+    speak(voice, "Виконую")
+
+    execute_command(
+        COMMANDS["commands"][command_name]
+    )
+
 
 print("Запускаю Jarvis...")
 print()
@@ -74,36 +102,105 @@ resolver_model = SentenceTransformer(MODEL_PATH, local_files_only=True)
 phrases = get_phrases(COMMANDS)
 encoded_options = encode_options(resolver_model, phrases)
 
-while True:
-    print()
-    speak(voice, "Слухаю")
-    print("Jarvis: Слухаю...")
+# ======================================================================
+# INITIALIZATION
+# ======================================================================
 
-    audio = record_audio(vad_model, microphone_id, sample_rate, channels, 
-        vad_threshold, silence_duration, pre_speech_duration
-    )
+wakeword_model = Model(
+    wakeword_models=["wakewords/hey_jarvis.onnx"],
+    inference_framework="onnx",
+)
 
-    if audio.size == 0:
-        continue
 
-    print("Jarvis: Розшифровую...")
+audio_manager = AudioManager(
+    vad_model=vad_model,
+    wakeword_model=wakeword_model,
 
-    words = transcribe(model, audio)
+    device_id=microphone_id,
+    sample_rate=sample_rate,
+    channels=channels,
 
-    print("Jarvis: Почув -", " ".join(words))
+    vad_threshold=vad_threshold,
+    silence_duration=silence_duration,
+    pre_speech_duration=pre_speech_duration,
 
-    command_name = get_command(resolver_model, encoded_options,
-        phrases, " ".join(words), COMMANDS
-    )
+    wakeword_threshold=0.5,
 
-    if command_name is None:
-        print(f"[{RED}FAILED{RESET}] Невідома команда")
-        speak(voice, "Не зрозумів повторіть ще раз")
-    else:
-        print(
-            f"[{GREEN}OK{RESET}] Виконую: {command_name}"
-        )
+    # Keep this long enough to bridge the wake-word detection latency.
+    ring_buffer_duration=2.0,
+)
 
-        speak(voice, "Виконую")
-        execute_command(COMMANDS["commands"][command_name])
-        
+active = False
+
+audio_manager.start()
+
+try:
+    while True:
+
+        # ==============================================================
+        # IDLE
+        # ==============================================================
+
+        if not active:
+            print("Jarvis: Слухаю активацію...")
+
+            # This waits for "Джарвіс".
+            #
+            # It also returns recent audio so that speech immediately
+            # following the wake word is not lost.
+            initial_audio = (
+                audio_manager.wait_for_wake_word()
+            )
+
+            # Now keep listening using the SAME microphone stream.
+            #
+            # This allows:
+            #
+            #   "Джарвіс, відкрий Chrome"
+            #
+            # to work without saying "Так?" first.
+            audio = audio_manager.record_command(
+                initial_audio=initial_audio
+            )
+
+            if audio.size == 0:
+                # Nothing followed the wake word.
+                speak(voice, "Так?")
+                active = True
+                continue
+
+            words = transcribe(model, audio)
+            text = " ".join(words).strip()
+
+            print("Jarvis: Почув -", text)
+
+            if text:
+                handle_command(text)
+
+            active = False
+
+        # ==============================================================
+        # ACTIVE
+        # ==============================================================
+
+        else:
+            print("Jarvis: Слухаю команду...")
+
+            audio = audio_manager.record_command()
+
+            if audio.size == 0:
+                active = False
+                continue
+
+            words = transcribe(model, audio)
+            text = " ".join(words).strip()
+
+            print("Jarvis: Почув -", text)
+
+            if text:
+                handle_command(text)
+
+            active = False
+
+finally:
+    audio_manager.stop()

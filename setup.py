@@ -198,8 +198,36 @@ if not commands_file_path.exists():
 # ---------------------------------------------------------------------------
 
 add_jarvis_to_startup()
+print()
 
 print(f"[{GREEN}OK{RESET}] Jarvis додано до Windows автозапуск")
+
+# ---------------------------------------------------------------------------
+# Download wake word model
+# ---------------------------------------------------------------------------
+
+import os
+import urllib.request
+
+WAKEWORD_DIR = "wakewords"
+WAKEWORD_PATH = os.path.join(
+    WAKEWORD_DIR,
+    "hey_jarvis.onnx",
+)
+
+os.makedirs(WAKEWORD_DIR, exist_ok=True)
+
+if not os.path.exists(WAKEWORD_PATH):
+    print(f"[{GREEN}OK{RESET}] Завантажується hey_jarvis фраза пробудження...")
+
+    urllib.request.urlretrieve(
+        "https://github.com/dscripka/openWakeWord/releases/"
+        "download/v0.5.1/hey_jarvis_v0.1.onnx",
+        WAKEWORD_PATH,
+    )
+
+    print(f"[{GREEN}OK{RESET}] Фразу пробудження завантажено.")
+    print()
 
 # ---------------------------------------------------------------------------
 # Download TTS voice
