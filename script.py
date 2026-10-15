@@ -12,8 +12,9 @@ import torch
 from silero_vad import load_silero_vad
 from sentence_transformers import SentenceTransformer
 from transformers.utils import logging
+from openwakeword.model import Model as WakeWordModel
 
-from src.voice_recording import record_audio
+from src.voice_recording import record_audio, wait_for_wake_word
 from src.voice_recognition import transcribe, create_speech_recognition_model
 from src.utils import RED, GREEN, RESET
 from src.tts import speak
@@ -74,13 +75,43 @@ resolver_model = SentenceTransformer(MODEL_PATH, local_files_only=True)
 phrases = get_phrases(COMMANDS)
 encoded_options = encode_options(resolver_model, phrases)
 
+# Wake-word setup
+WAKEWORD_PATH = Path("wakewords/hey_jarvis.onnx")
+
+wakeword_model = WakeWordModel(
+    wakeword_models=[str(WAKEWORD_PATH)],
+    inference_framework="onnx",
+)
+
+print("Wake-word model loaded successfully.")
+
 while True:
     print()
+    print("Jarvis: Очікую на ключову фразу...")
+
+    # Wait until "Hey Jarvis" is detected
+    wait_for_wake_word(
+        wakeword_model=wakeword_model,
+        device_id=microphone_id,
+        sample_rate=sample_rate,
+        channels=channels,
+        threshold=0.5,
+    )
+
+    print("Jarvis: Ключову фразу розпізнано!")
+
     speak(voice, "Слухаю")
     print("Jarvis: Слухаю...")
 
-    audio = record_audio(vad_model, microphone_id, sample_rate, channels, 
-        vad_threshold, silence_duration, pre_speech_duration
+    # Record the command using your existing VAD
+    audio = record_audio(
+        vad_model,
+        microphone_id,
+        sample_rate,
+        channels,
+        vad_threshold,
+        silence_duration,
+        pre_speech_duration,
     )
 
     if audio.size == 0:
@@ -92,17 +123,19 @@ while True:
 
     print("Jarvis: Почув -", " ".join(words))
 
-    command_name = get_command(resolver_model, encoded_options,
-        phrases, " ".join(words), COMMANDS
+    command_name = get_command(
+        resolver_model,
+        encoded_options,
+        phrases,
+        " ".join(words),
+        COMMANDS,
     )
 
     if command_name is None:
         print(f"[{RED}FAILED{RESET}] Невідома команда")
-        speak(voice, "Не зрозумів повторіть ще раз")
+        speak(voice, "Не зрозумів, повторіть ще раз")
     else:
-        print(
-            f"[{GREEN}OK{RESET}] Виконую: {command_name}"
-        )
+        print(f"[{GREEN}OK{RESET}] Виконую: {command_name}")
 
         speak(voice, "Виконую")
         execute_command(COMMANDS["commands"][command_name])

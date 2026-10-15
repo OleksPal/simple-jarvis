@@ -122,3 +122,69 @@ def prepare_vad_audio(audio, sample_rate):
         audio = audio[:VAD_CHUNK_SIZE]
 
     return audio
+
+def wait_for_wake_word(
+    wakeword_model,
+    device_id: int,
+    sample_rate: int,
+    channels: int = 1,
+    threshold: float = 0.5,
+):
+    """Listen continuously until the wake word is detected."""
+
+    audio_queue = queue.Queue()
+
+    # openWakeWord expects 1280 samples at 16 kHz.
+    wake_chunk_size = round(
+        1280 * sample_rate / 16000
+    )
+
+    def callback(indata, frames, time_info, status):
+        if status:
+            print("Статус аудіо:", status)
+
+        # Capture mono int16 PCM audio.
+        audio_queue.put(indata[:, 0].copy())
+
+    # Buffer resampled audio into exact 1280-sample frames.
+    audio_buffer = np.array([], dtype=np.int16)
+
+    with sd.InputStream(
+        device=device_id,
+        samplerate=sample_rate,
+        channels=channels,
+        dtype="int16",
+        blocksize=wake_chunk_size,
+        callback=callback,
+    ):
+        while True:
+            chunk = audio_queue.get()
+
+            # Convert microphone audio to 16 kHz.
+            audio_float = chunk.astype(np.float32) / 32768.0
+
+            audio_16k = torchaudio.functional.resample(
+                torch.from_numpy(audio_float),
+                orig_freq=sample_rate,
+                new_freq=16000,
+            ).numpy()
+
+            chunk_int16 = np.clip(
+                audio_16k * 32768.0,
+                -32768,
+                32767,
+            ).astype(np.int16)
+
+            audio_buffer = np.concatenate(
+                (audio_buffer, chunk_int16)
+            )
+
+            while len(audio_buffer) >= 1280:
+                frame = audio_buffer[:1280]
+                audio_buffer = audio_buffer[1280:]
+
+                scores = wakeword_model.predict(frame)
+
+                if scores and max(scores.values()) >= threshold:
+                    wakeword_model.reset()
+                    return
