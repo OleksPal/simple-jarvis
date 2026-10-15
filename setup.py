@@ -2,10 +2,15 @@ import sys
 import subprocess
 from src.utils import is_cuda_gpu_enable, add_jarvis_to_startup, install_pytorch, RED, GREEN, YELLOW, RESET
 
+print("Розпочато налаштування Jarvis...")
+print()
+
 install_pytorch()
 
 import time
 import json
+import os
+import urllib.request
 from pathlib import Path
 
 from piper import PiperVoice
@@ -14,9 +19,6 @@ from sentence_transformers import SentenceTransformer
 from src.check_microphone import get_input_endpoints, record_from_endpoints
 from src.tts import speak
 from src.voice_recognition import create_speech_recognition_model, find_best_microphone
-
-print("Розпочато налаштування Jarvis...")
-print()
 
 # ---------------------------------------------------------------------------
 # Download semantic model
@@ -200,6 +202,30 @@ if not commands_file_path.exists():
 add_jarvis_to_startup()
 
 print(f"[{GREEN}OK{RESET}] Jarvis додано до Windows автозапуск")
+
+# ---------------------------------------------------------------------------
+# Download wake phrase onnx
+# ---------------------------------------------------------------------------
+
+WAKEWORD_DIR = "wakewords"
+WAKEWORD_PATH = os.path.join(
+    WAKEWORD_DIR,
+    "hey_jarvis.onnx",
+)
+
+os.makedirs(WAKEWORD_DIR, exist_ok=True)
+
+if not os.path.exists(WAKEWORD_PATH):
+    print(f"[{GREEN}OK{RESET}] Завантажується hey_jarvis фраза пробудження...")
+
+    urllib.request.urlretrieve(
+        "https://github.com/dscripka/openWakeWord/releases/"
+        "download/v0.5.1/hey_jarvis_v0.1.onnx",
+        WAKEWORD_PATH,
+    )
+
+    print(f"[{GREEN}OK{RESET}] Фразу пробудження завантажено.")
+    print()
 
 # ---------------------------------------------------------------------------
 # Download TTS voice

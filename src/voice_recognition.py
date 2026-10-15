@@ -20,7 +20,7 @@ def create_speech_recognition_model(model_size = "small"):
         return WhisperModel(
             model_size,
             device="cuda",
-            compute_type="float16"
+            compute_type="int8"
         )
 
     # CPU

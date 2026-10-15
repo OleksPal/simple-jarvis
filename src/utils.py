@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from importlib.metadata import version, PackageNotFoundError
 
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -33,30 +34,35 @@ def run_pip(*args):
             result.args,
         )
 
+def is_pytorch_installed() -> bool:
+    try:
+        torch_version = version("torch")
+        audio_version = version("torchaudio")
+
+        if not torch_version.startswith("2.11.0"):
+            return False
+
+        if not audio_version.startswith("2.11.0"):
+            return False
+
+        return True
+
+    except (PackageNotFoundError, ImportError):
+        return False
+    
 def install_pytorch():
-    if os.system("nvidia-smi >nul 2>&1") == 0:
-        print(f"[{GREEN}OK{RESET}] Виявлено NVIDIA GPU.")
-        print(f"[{GREEN}OK{RESET}] Встановлюється PyTorch CUDA 12.6...")
-        print()
+    if is_pytorch_installed():
+        return
 
-        run_pip(
-            "--extra-index-url",
-            "https://download.pytorch.org/whl/cu126",
-            "torch==2.11.0+cu126",
-            "torchaudio==2.11.0+cu126",
-        )
+    print(f"[{GREEN}OK{RESET}] Встановлюється CPU PyTorch...")
+    print()
 
-    else:
-        print(f"[{RED}FAILED{RESET}] NVIDIA GPU не знайдено.")
-        print(f"[{GREEN}OK{RESET}] Встановлюється CPU PyTorch...")
-        print()
-
-        run_pip(
-            "--extra-index-url",
-            "https://download.pytorch.org/whl/cpu",
-            "torch==2.11.0",
-            "torchaudio==2.11.0",
-        )
+    run_pip(
+        "--extra-index-url",
+        "https://download.pytorch.org/whl/cpu",
+        "torch==2.11.0",
+        "torchaudio==2.11.0",
+    )
 
 def is_cuda_gpu_enable():
     return os.system("nvidia-smi >nul 2>&1") == 0
