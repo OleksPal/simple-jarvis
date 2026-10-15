@@ -1,6 +1,7 @@
 import warnings
 import json
 from pathlib import Path
+import time
 
 warnings.filterwarnings(
     "ignore",
@@ -85,11 +86,13 @@ wakeword_model = WakeWordModel(
 
 print("Wake-word model loaded successfully.")
 
+FOLLOW_UP_TIMEOUT = 15.0
+COMMAND_START_TIMEOUT = 5.0
+
 while True:
     print()
     print("Jarvis: Очікую на ключову фразу...")
 
-    # Wait until "Hey Jarvis" is detected
     wait_for_wake_word(
         wakeword_model=wakeword_model,
         device_id=microphone_id,
@@ -99,44 +102,69 @@ while True:
     )
 
     print("Jarvis: Ключову фразу розпізнано!")
-
     speak(voice, "Слухаю")
-    print("Jarvis: Слухаю...")
 
-    # Record the command using your existing VAD
-    audio = record_audio(
-        vad_model,
-        microphone_id,
-        sample_rate,
-        channels,
-        vad_threshold,
-        silence_duration,
-        pre_speech_duration,
-    )
+    follow_up_deadline = None
 
-    if audio.size == 0:
-        continue
+    while True:
+        print("Jarvis: Слухаю...")
 
-    print("Jarvis: Розшифровую...")
+        # Before the first command, wait up to 5 seconds.
+        # In follow-up mode, wait only for the remaining time.
+        if follow_up_deadline is None:
+            start_timeout = COMMAND_START_TIMEOUT
+        else:
+            remaining = follow_up_deadline - time.monotonic()
 
-    words = transcribe(model, audio)
+            if remaining <= 0:
+                print("Jarvis: Follow-up режим завершено.")
+                break
 
-    print("Jarvis: Почув -", " ".join(words))
+            start_timeout = min(COMMAND_START_TIMEOUT, remaining)
 
-    command_name = get_command(
-        resolver_model,
-        encoded_options,
-        phrases,
-        " ".join(words),
-        COMMANDS,
-    )
+        audio = record_audio(
+            vad_model,
+            microphone_id,
+            sample_rate,
+            channels,
+            vad_threshold,
+            silence_duration,
+            pre_speech_duration,
+            start_timeout=start_timeout,
+        )
 
-    if command_name is None:
-        print(f"[{RED}FAILED{RESET}] Невідома команда")
-        speak(voice, "Не зрозумів, повторіть ще раз")
-    else:
-        print(f"[{GREEN}OK{RESET}] Виконую: {command_name}")
+        if audio.size == 0:
+            print("Jarvis: Повертаюся до очікування ключової фрази.")
+            break
 
-        speak(voice, "Виконую")
-        execute_command(COMMANDS["commands"][command_name])
-        
+        print("Jarvis: Розшифровую...")
+
+        words = transcribe(model, audio)
+        recognized_text = " ".join(words)
+
+        # Ignore empty transcriptions, often caused by noise or silence.
+        if not recognized_text:
+            print("Jarvis: Не виявлено мовлення, продовжую слухати...")
+            continue
+
+        print("Jarvis: Почув -", recognized_text)
+
+        command_name = get_command(
+            resolver_model,
+            encoded_options,
+            phrases,
+            recognized_text,
+            COMMANDS,
+        )
+
+        if command_name is None:
+            print(f"[{RED}FAILED{RESET}] Невідома команда")
+            speak(voice, "Не зрозумів, повторіть ще раз")
+        else:
+            print(f"[{GREEN}OK{RESET}] Виконую: {command_name}")
+            speak(voice, "Виконую")
+
+            execute_command(COMMANDS["commands"][command_name])
+
+        # Reset the inactivity timer after each processed utterance.
+        follow_up_deadline = time.monotonic() + FOLLOW_UP_TIMEOUT
