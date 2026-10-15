@@ -9,20 +9,26 @@ VAD_SAMPLE_RATE = 16000
 VAD_CHUNK_SIZE = 512
 VAD_MIN_SAMPLES = 512
 
-def record_audio(vad_model, device_id: int, sample_rate, channels, vad_threshold,
-    silence_duration, pre_speech_duration):
+def record_audio(
+    vad_model,
+    device_id: int,
+    sample_rate,
+    channels,
+    vad_threshold,
+    silence_duration,
+    pre_speech_duration,
+    start_timeout=5.0,
+):
     audio_queue = queue.Queue()
 
-    # 512 samples @ 16 kHz converted to microphone sample rate
     chunk_size = round(
         VAD_CHUNK_SIZE * sample_rate / VAD_SAMPLE_RATE
     )
 
-    def callback(indata, frames, time_info, status):        
+    def callback(indata, frames, time_info, status):
         if status:
             print("Статус аудіо:", status)
 
-        # int16 -> float32 [-1, 1]
         chunk = indata[:, 0].astype(np.float32) / 32768.0
         audio_queue.put(chunk)
 
@@ -36,6 +42,7 @@ def record_audio(vad_model, device_id: int, sample_rate, channels, vad_threshold
 
     speech_started = False
     silence_start = None
+    listening_started = time.monotonic()
 
     with sd.InputStream(
         device=device_id,
@@ -43,16 +50,23 @@ def record_audio(vad_model, device_id: int, sample_rate, channels, vad_threshold
         channels=channels,
         dtype="int16",
         blocksize=chunk_size,
-        callback=callback
+        callback=callback,
     ):
         while True:
-            chunk = audio_queue.get()
+            # Timeout if speech has not started.
+            if not speech_started:
+                elapsed = time.monotonic() - listening_started
 
-            audio_16k = prepare_vad_audio(
-                chunk,
-                sample_rate
-            )
+                if elapsed >= start_timeout:
+                    print("Jarvis: Час очікування команди вичерпано.")
+                    return np.array([], dtype=np.float32)
 
+            try:
+                chunk = audio_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
+
+            audio_16k = prepare_vad_audio(chunk, sample_rate)
             audio_16k = audio_16k.float()
 
             with torch.no_grad():
@@ -63,7 +77,6 @@ def record_audio(vad_model, device_id: int, sample_rate, channels, vad_threshold
 
             is_speech = probability >= vad_threshold
 
-            # Waiting for speech
             if not speech_started:
                 pre_buffer.append(chunk)
 
@@ -76,7 +89,6 @@ def record_audio(vad_model, device_id: int, sample_rate, channels, vad_threshold
 
                 continue
 
-            # Recording speech
             speech_audio.append(chunk)
 
             if is_speech:
@@ -98,7 +110,6 @@ def record_audio(vad_model, device_id: int, sample_rate, channels, vad_threshold
     ).numpy()
 
     return audio
-
 
 def prepare_vad_audio(audio, sample_rate):
     """Convert arbitrary microphone audio to exactly 512 samples at 16 kHz."""
