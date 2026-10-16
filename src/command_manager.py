@@ -1,6 +1,7 @@
 import json
 import subprocess
 import webbrowser
+import pyautogui
 
 def load_commands(filename):
     with open(filename, "r", encoding="utf-8") as file:
@@ -39,6 +40,9 @@ def execute_command(command):
     elif action_type == "browser":
         open_browser(action["url"])
 
+    elif action_type == "close_current_tab":
+        close_current_tab()
+
     elif action_type == "close_jarvis":
         close_jarvis()
 
@@ -57,6 +61,9 @@ def close_program(path):
         f"Where-Object {{$_.CommandLine -like '*{path}*'}} | "
         f"Invoke-CimMethod -MethodName Terminate"
     ])
+
+def close_current_tab():
+    pyautogui.hotkey("ctrl", "w")
 
 def close_jarvis():
     exit()
