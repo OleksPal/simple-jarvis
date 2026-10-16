@@ -9,7 +9,7 @@ import sounddevice as sd
 # The model itself stays in memory.
 # voice = PiperVoice.load("uk_UA-mykyta-high.onnx")
 
-def speak(voice, text: str, speed: float = 1.4, volume: float = 1.0):
+def speak(voice, text: str, speed: float = 1.5, volume: float = 1.0):
     """
     Convert text to speech using Piper and play it.
     Adjust speed without changing pitch.

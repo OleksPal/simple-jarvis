@@ -52,10 +52,6 @@ torch.set_num_threads(1)
 model = create_speech_recognition_model(model_size)
 voice = PiperVoice.load("tts/uk_UA-mykyta-high.onnx", use_cuda=use_cuda)
 
-print()
-print("Джарвіс готовий до роботи. Чим я можу допомогти?")
-speak(voice, "Джарвіс готовий до роботи. Чим я можу допомогти?")
-
 COMMANDS = []
 
 commands_path = Path("config/commands.json")
@@ -85,10 +81,14 @@ wakeword_model = WakeWordModel(
     inference_framework="onnx",
 )
 
-print("Wake-word model loaded successfully.")
+print(f"[{GREEN}OK{RESET}] Wake-word модель завантажено успішно.")
 
 FOLLOW_UP_TIMEOUT = 15.0
 COMMAND_START_TIMEOUT = 5.0
+
+print()
+print("Джарвіс готовий до роботи. Чим я можу допомогти?")
+speak(voice, "Джарвіс готовий до роботи. Чим я можу допомогти?")
 
 while True:
     print()
