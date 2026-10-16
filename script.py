@@ -74,11 +74,17 @@ encoded_options = encode_options(resolver_model, phrases)
 cleanup_memory()
 
 # Wake-word setup
-WAKEWORD_PATH = Path("wakewords/hey_jarvis.onnx")
+WAKEWORD_DIR = Path("wakewords")
+
+WAKEWORD_PATH = WAKEWORD_DIR / "hey_jarvis.onnx"
+MELSPEC_PATH = WAKEWORD_DIR / "melspectrogram.onnx"
+EMBEDDING_PATH = WAKEWORD_DIR / "embedding_model.onnx"
 
 wakeword_model = WakeWordModel(
     wakeword_models=[str(WAKEWORD_PATH)],
     inference_framework="onnx",
+    melspec_model_path=str(MELSPEC_PATH),
+    embedding_model_path=str(EMBEDDING_PATH),
 )
 
 print(f"[{GREEN}OK{RESET}] Wake-word модель завантажено успішно.")

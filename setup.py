@@ -1,11 +1,6 @@
 import sys
 import subprocess
-from src.utils import is_cuda_gpu_enable, add_jarvis_to_startup, install_pytorch, RED, GREEN, YELLOW, RESET
-
-print("Розпочато налаштування Jarvis...")
-print()
-
-install_pytorch()
+from src.utils import is_cuda_gpu_enable, add_jarvis_to_startup, RED, GREEN, YELLOW, RESET
 
 import time
 import json
@@ -15,10 +10,14 @@ from pathlib import Path
 
 from piper import PiperVoice
 from sentence_transformers import SentenceTransformer
+from openwakeword.utils import download_models
 
 from src.check_microphone import get_input_endpoints, record_from_endpoints
 from src.tts import speak
 from src.voice_recognition import create_speech_recognition_model, find_best_microphone
+
+print("Розпочато налаштування Jarvis...")
+print()
 
 # ---------------------------------------------------------------------------
 # Download semantic model
@@ -207,25 +206,45 @@ print(f"[{GREEN}OK{RESET}] Jarvis додано до Windows автозапуск
 # Download wake phrase onnx
 # ---------------------------------------------------------------------------
 
-WAKEWORD_DIR = "wakewords"
-WAKEWORD_PATH = os.path.join(
-    WAKEWORD_DIR,
-    "hey_jarvis.onnx",
-)
+WAKEWORD_DIR = Path("wakewords")
+WAKEWORD_DIR.mkdir(parents=True, exist_ok=True)
 
-os.makedirs(WAKEWORD_DIR, exist_ok=True)
-
-if not os.path.exists(WAKEWORD_PATH):
-    print(f"[{GREEN}OK{RESET}] Завантажується hey_jarvis фраза пробудження...")
-
-    urllib.request.urlretrieve(
+MODELS = {
+    "hey_jarvis.onnx": (
         "https://github.com/dscripka/openWakeWord/releases/"
-        "download/v0.5.1/hey_jarvis_v0.1.onnx",
-        WAKEWORD_PATH,
-    )
+        "download/v0.5.1/hey_jarvis_v0.1.onnx"
+    ),
+    "melspectrogram.onnx": (
+        "https://github.com/dscripka/openWakeWord/releases/"
+        "download/v0.5.1/melspectrogram.onnx"
+    ),
+    "embedding_model.onnx": (
+        "https://github.com/dscripka/openWakeWord/releases/"
+        "download/v0.5.1/embedding_model.onnx"
+    ),
+}
 
-    print(f"[{GREEN}OK{RESET}] Фразу пробудження завантажено.")
-    print()
+for filename, url in MODELS.items():
+    path = WAKEWORD_DIR / filename
+
+    if not path.is_file() or path.stat().st_size == 0:
+        print(f"[{GREEN}OK{RESET}] Downloading {filename}...")
+
+        try:
+            urllib.request.urlretrieve(url, str(path))
+
+            if not path.is_file() or path.stat().st_size == 0:
+                raise RuntimeError(f"Download failed: {filename}")
+
+            print(f"[{GREEN}OK{RESET}] Downloaded {filename}.")
+
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
+    else:
+        print(f"[{GREEN}OK{RESET}] {filename} already exists.")
+
+print()
 
 # ---------------------------------------------------------------------------
 # Download TTS voice
