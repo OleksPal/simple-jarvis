@@ -2,7 +2,6 @@ import warnings
 import json
 from pathlib import Path
 import time
-
 warnings.filterwarnings(
     "ignore",
     message=".*torch.jit.load.*"
@@ -17,7 +16,7 @@ from openwakeword.model import Model as WakeWordModel
 
 from src.voice_recording import record_audio, wait_for_wake_word
 from src.voice_recognition import transcribe, create_speech_recognition_model
-from src.utils import RED, GREEN, RESET
+from src.utils import RED, GREEN, RESET, cleanup_memory
 from src.tts import speak
 
 from src.command_manager import load_commands, execute_command, get_phrases
@@ -75,6 +74,8 @@ MODEL_PATH = "resources/semantic_model"
 resolver_model = SentenceTransformer(MODEL_PATH, local_files_only=True)
 phrases = get_phrases(COMMANDS)
 encoded_options = encode_options(resolver_model, phrases)
+
+cleanup_memory()
 
 # Wake-word setup
 WAKEWORD_PATH = Path("wakewords/hey_jarvis.onnx")
@@ -165,6 +166,8 @@ while True:
             speak(voice, "Виконую")
 
             execute_command(COMMANDS["commands"][command_name])
+
+        cleanup_memory()
 
         # Reset the inactivity timer after each processed utterance.
         follow_up_deadline = time.monotonic() + FOLLOW_UP_TIMEOUT

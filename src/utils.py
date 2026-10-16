@@ -3,6 +3,8 @@ from pathlib import Path
 import subprocess
 import sys
 import importlib.metadata
+import gc
+import torch
 
 GREEN = "\033[92m"
 RED = "\033[91m"
@@ -107,3 +109,10 @@ def add_jarvis_to_startup():
         ],
         check=True,
     )
+
+def cleanup_memory():
+    """Release unused Python and CUDA memory."""
+    gc.collect()
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
