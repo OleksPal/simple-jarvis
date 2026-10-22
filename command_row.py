@@ -1,6 +1,5 @@
 import customtkinter as ctk
 
-
 class CommandRow(ctk.CTkFrame):
     def __init__(
         self,
@@ -32,7 +31,7 @@ class CommandRow(ctk.CTkFrame):
         )
         self.text_frame.grid(
             row=0, column=0, sticky="nsew",
-            padx=10, pady=5,
+            padx=10, pady=3,
         )
 
         self.title_label = ctk.CTkLabel(

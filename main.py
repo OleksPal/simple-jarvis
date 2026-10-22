@@ -3,16 +3,23 @@ import customtkinter as ctk
 from pathlib import Path
 from command_row import CommandRow
 from command_settings import CommandSettings
-from src.command_manager import load_commands
+from src.command_manager import load_commands, save_commands
 
 COMMANDS_PATH = Path("config/commands.json")
 
+ACTION_MAP = {
+    "Відкрити файл": "open_file",
+    "Закрити файл": "close_file",
+    "Відкрити посилання": "open_url",
+    "Закрити поточну вкладку": "close_current_tab",
+    "Закрити Jarvis": "close_jarvis",
+}
 
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Редактор Команд Jarvis")
+        self.title("Jarvis - Редактор Команд")
         self.geometry("950x600")
         self.minsize(800, 500)
 
@@ -24,8 +31,7 @@ class App(ctk.CTk):
         self.grid_rowconfigure(0, weight=1)
 
         # Load JSON configuration
-        self.config_data = load_commands(COMMANDS_PATH)
-        self.commands = self.config_data["commands"]
+        self.commands = load_commands(COMMANDS_PATH)
 
         self.rows = {}
         self.selected_command = None
@@ -67,13 +73,13 @@ class App(ctk.CTk):
             pady=(5, 10),
         )
 
-        # Scrollable settings container
-        self.settings_scroll = ctk.CTkScrollableFrame(
+        # Regular settings container: fills the available right column
+        self.settings_container = ctk.CTkFrame(
             self,
-            orientation="vertical",
+            fg_color="transparent",
         )
 
-        self.settings_scroll.grid(
+        self.settings_container.grid(
             row=0,
             column=1,
             sticky="nsew",
@@ -81,14 +87,22 @@ class App(ctk.CTk):
             pady=10,
         )
 
-        # Settings panel inside the scrollable container
+        # Make the container's cell expand with the window
+        self.settings_container.grid_rowconfigure(0, weight=1)
+        self.settings_container.grid_columnconfigure(0, weight=1)
+
+        # Settings panel fills the entire container
         self.settings_panel = CommandSettings(
-            self.settings_scroll,
+            self.settings_container,
             on_create=self.create_command,
+            on_edit=self.edit_command,
+            on_delete=self.delete_command
         )
-        self.settings_panel.pack(
-            fill="both",
-            expand=True,
+
+        self.settings_panel.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
         )
 
         # Create command rows
@@ -98,8 +112,8 @@ class App(ctk.CTk):
             row = CommandRow(
                 master=self.command_list,
                 name=name,
-                description=action["type"],
-                enabled=action.get("enabled", False),
+                description=self.key_to_action(action["type"]),
+                enabled=action.get("enabled", True),
                 on_select=self.select_command,
                 on_toggle=self.toggle_command,
             )
@@ -122,7 +136,7 @@ class App(ctk.CTk):
     def toggle_command(self, name, enabled):
         self.commands[name]["action"]["enabled"] = enabled
 
-        print(f"{name}: enabled={enabled}")
+        save_commands(COMMANDS_PATH, self.commands)
 
         if self.selected_command == name:
             self.show_settings(name)
@@ -148,11 +162,13 @@ class App(ctk.CTk):
 
         self.commands[name] = command
 
+        save_commands(COMMANDS_PATH, self.commands)
+
         row = CommandRow(
             master=self.command_list,
             name=name,
-            description=command["action"]["type"],
-            enabled=False,
+            description=self.key_to_action(command["action"]["type"]),
+            enabled=True,
             on_select=self.select_command,
             on_toggle=self.toggle_command,
         )
@@ -161,6 +177,80 @@ class App(ctk.CTk):
         self.rows[name] = row
         self.select_command(name)
 
+    def edit_command(self, old_name, new_name, command):
+        new_name = new_name.strip()
+
+        if not new_name:
+            print("Command name cannot be empty.")
+            return
+
+        if new_name != old_name and new_name in self.commands:
+            print("A command with this name already exists.")
+            return
+
+        updated_commands = {}
+
+        for name, data in self.commands.items():
+            if name == old_name:
+                updated_commands[new_name] = command
+            else:
+                updated_commands[name] = data
+
+        self.commands = updated_commands
+
+        # Remove the old entry and its row
+        old_row = self.rows.pop(old_name, None)
+        if old_row:
+            old_row.destroy()
+
+        self.commands.pop(old_name, None)
+
+        # Add the updated command under its new name
+        self.commands[new_name] = command
+
+        row = CommandRow(
+            master=self.command_list,
+            name=new_name,
+            description=self.key_to_action(command["action"]["type"]),
+            enabled=command["action"].get("enabled", True),
+            on_select=self.select_command,
+            on_toggle=self.toggle_command,
+        )
+        row.pack(fill="x", pady=3)
+
+        self.rows[new_name] = row
+
+        save_commands(COMMANDS_PATH, self.commands)
+
+        self.select_command(new_name)
+
+    def delete_command(self, name):
+        if not name:
+            return
+
+        if name in self.commands:
+            del self.commands[name]
+
+            # Remove the old entry and its row
+            old_row = self.rows.pop(name, None)
+            if old_row:
+                old_row.destroy()
+
+            self.select_command(next(iter(self.commands)))
+
+            save_commands(COMMANDS_PATH, self.commands)
+        else:
+            return
+
+    @staticmethod
+    def action_to_key(action_name):
+        """Convert display name to internal key."""
+        return ACTION_MAP.get(action_name)
+
+    @staticmethod
+    def key_to_action(action_key):
+        """Convert internal key to display name."""
+        return {value: key for key, value in ACTION_MAP.items()}.get(action_key)
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("dark")
