@@ -51,10 +51,10 @@ class PhraseListEditor(ctk.CTkFrame):
             padx=(0, 15)
         )
 
-        # Update the in-memory list whenever the user types.
-        entry.entry.bind(
-            "<KeyRelease>",
-            lambda event: self._sync_strings(),
+        # Synchronize whenever the underlying StringVar changes.
+        entry.variable.trace_add(
+            "write",
+            lambda *_: self._sync_strings(),
         )
 
         delete_button = ctk.CTkButton(
@@ -84,10 +84,10 @@ class PhraseListEditor(ctk.CTkFrame):
 
     def delete_string(self, row):
         """Delete an input and immediately update the list."""
-        for item in self.entries:
-            if item[0] == row:
-                self.entries.remove(item)
-                break
+        self.entries = [
+            item for item in self.entries
+            if item[0] != row
+        ]
 
         row.destroy()
         self._sync_strings()
@@ -98,7 +98,10 @@ class PhraseListEditor(ctk.CTkFrame):
             row.destroy()
 
         self.entries.clear()
-        self.strings = list(values)
+        self.strings = [
+            str(value) if value is not None else ""
+            for value in (values or [])
+        ]
 
         for value in self.strings:
             self._create_row(value)
