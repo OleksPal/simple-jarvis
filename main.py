@@ -73,6 +73,21 @@ class App(ctk.CTk):
             padx=5,
             pady=(0, 5),
         )
+        
+        # Command name filter
+        self.command_filter_entry = ctk.CTkEntry(
+            self.command_list,
+            placeholder_text="Пошук команд...",
+        )
+        self.command_filter_entry.pack(
+            fill="x",
+            pady=(5, 10),
+        )
+
+        self.command_filter_entry.bind(
+            "<KeyRelease>",
+            self.filter_commands,
+        )
 
         self.add_command_button = ctk.CTkButton(
             self.command_list,
@@ -254,6 +269,18 @@ class App(ctk.CTk):
             save_commands(COMMANDS_PATH, self.commands)
         else:
             return
+    
+    def filter_commands(self, event=None):
+        query = self.command_filter_entry.get().strip().casefold()
+
+        # Hide all command rows
+        for row in self.rows.values():
+            row.pack_forget()
+
+        # Show matching rows in their original order
+        for name in self.commands:
+            if query in name.casefold():
+                self.rows[name].pack(fill="x", pady=3)
 
     @staticmethod
     def action_to_key(action_name):
