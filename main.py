@@ -156,12 +156,15 @@ class App(ctk.CTk):
         self.settings_panel.show_empty_settings()
 
     def create_command(self, name, command):
+        name = name.strip()
+
+        if not name:
+            return False
+
         if name in self.commands:
-            print("A command with this name already exists.")
-            return
+            return False
 
         self.commands[name] = command
-
         save_commands(COMMANDS_PATH, self.commands)
 
         row = CommandRow(
@@ -177,37 +180,25 @@ class App(ctk.CTk):
         self.rows[name] = row
         self.select_command(name)
 
+        return True
+
     def edit_command(self, old_name, new_name, command):
         new_name = new_name.strip()
 
-        if not new_name:
-            print("Command name cannot be empty.")
-            return
+        if not new_name or old_name not in self.commands:
+            return False
 
         if new_name != old_name and new_name in self.commands:
-            print("A command with this name already exists.")
-            return
+            return False
 
-        updated_commands = {}
+        # Preserve the original position
+        updated_commands = {
+            (new_name if name == old_name else name):
+                (command if name == old_name else data)
+            for name, data in self.commands.items()
+        }
 
-        for name, data in self.commands.items():
-            if name == old_name:
-                updated_commands[new_name] = command
-            else:
-                updated_commands[name] = data
-
-        self.commands = updated_commands
-
-        # Remove the old entry and its row
-        old_row = self.rows.pop(old_name, None)
-        if old_row:
-            old_row.destroy()
-
-        self.commands.pop(old_name, None)
-
-        # Add the updated command under its new name
-        self.commands[new_name] = command
-
+        # Build the replacement row
         row = CommandRow(
             master=self.command_list,
             name=new_name,
@@ -216,13 +207,29 @@ class App(ctk.CTk):
             on_select=self.select_command,
             on_toggle=self.toggle_command,
         )
-        row.pack(fill="x", pady=3)
 
+        old_row = self.rows.get(old_name)
+
+        # Update state
+        self.commands = updated_commands
+
+        if old_row:
+            old_row.destroy()
+
+        self.rows.pop(old_name, None)
         self.rows[new_name] = row
 
-        save_commands(COMMANDS_PATH, self.commands)
+        # Repack rows in dictionary order
+        for command_row in self.rows.values():
+            command_row.pack_forget()
 
+        for name in self.commands:
+            self.rows[name].pack(fill="x", pady=3)
+
+        save_commands(COMMANDS_PATH, self.commands)
         self.select_command(new_name)
+
+        return True
 
     def delete_command(self, name):
         if not name:
@@ -236,7 +243,11 @@ class App(ctk.CTk):
             if old_row:
                 old_row.destroy()
 
-            self.select_command(next(iter(self.commands)))
+            if self.commands:
+                self.select_command(next(iter(self.commands)))
+            else:
+                self.selected_command = None
+                self.settings_panel.show_empty_settings()
 
             save_commands(COMMANDS_PATH, self.commands)
         else:
