@@ -1,4 +1,17 @@
 import customtkinter as ctk
+from ctkfontawesome import icon_to_ctkimage
+
+star_icon = icon_to_ctkimage(
+    "star",
+    fill="#EAB308",
+    scale_to_width=14
+)
+
+code_icon = icon_to_ctkimage(
+    "code",
+    fill="white",
+    scale_to_width=12
+)
 
 class CommandRow(ctk.CTkFrame):
     def __init__(
@@ -41,7 +54,9 @@ class CommandRow(ctk.CTkFrame):
 
         self.title_label = ctk.CTkLabel(
             self.text_frame,
-            text=name,
+            text=f" {name}",
+            image=star_icon,
+            compound="left",
             anchor="w",
             font=ctk.CTkFont(size=14, weight="bold"),
         )
@@ -49,7 +64,9 @@ class CommandRow(ctk.CTkFrame):
 
         self.description_label = ctk.CTkLabel(
             self.text_frame,
-            text=description,
+            text=f"  {description}",
+            image=code_icon,
+            compound="left",
             anchor="w",
             text_color="gray75",
             font=ctk.CTkFont(size=12),
@@ -123,5 +140,5 @@ class CommandRow(ctk.CTkFrame):
     def update_content(self, name: str, description: str):
         self.name = name
 
-        self.title_label.configure(text=name)
-        self.description_label.configure(text=description)
+        self.title_label.configure(text=f" {name}")
+        self.description_label.configure(text=f"  {description}")

@@ -1,5 +1,5 @@
-
 import customtkinter as ctk
+from ctkfontawesome import icon_to_ctkimage
 from pathlib import Path
 from command_row import CommandRow
 from command_settings import CommandSettings
@@ -14,6 +14,12 @@ ACTION_MAP = {
     "Закрити поточну вкладку": "close_current_tab",
     "Закрити Jarvis": "close_jarvis",
 }
+
+add_icon = icon_to_ctkimage(
+    "plus",
+    fill="#FFFFFF",
+    scale_to_width=14
+)
 
 class App(ctk.CTk):
     def __init__(self):
@@ -42,7 +48,7 @@ class App(ctk.CTk):
             self.select_command(next(iter(self.commands)))
     
     def _configure_layout(self):
-        self.grid_columnconfigure(0, weight=0, minsize=300)
+        self.grid_columnconfigure(0, weight=0, minsize=320)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -91,7 +97,8 @@ class App(ctk.CTk):
 
         self.add_command_button = ctk.CTkButton(
             self.command_list,
-            text="+ Додати нову команду",
+            text="Додати нову команду",
+            image=add_icon,
             command=self.add_new_command,
         )
 

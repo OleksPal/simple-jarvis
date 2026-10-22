@@ -1,11 +1,53 @@
-
 from copy import deepcopy
 import customtkinter as ctk
+from ctkfontawesome import icon_to_ctkimage
 from tkinter import filedialog
 from CTkMessagebox import CTkMessagebox
 
 from phrase_list_editor import PhraseListEditor
 from underlined_entry import UnderlinedEntry
+
+star_icon = icon_to_ctkimage(
+    "star",
+    fill="#EAB308",
+    scale_to_width=22
+)
+
+code_icon = icon_to_ctkimage(
+    "code",
+    fill="white",
+    scale_to_width=14
+)
+
+folder_icon = icon_to_ctkimage(
+    "folder-open",
+    fill="white",
+    scale_to_width=14
+)
+
+link_icon = icon_to_ctkimage(
+    "link",
+    fill="white",
+    scale_to_width=14
+)
+
+trash_icon = icon_to_ctkimage(
+    "trash",
+    fill="white",
+    scale_to_width=14
+)
+
+save_icon = icon_to_ctkimage(
+    "floppy-disk",
+    fill="white",
+    scale_to_width=14
+)
+
+cancel_icon = icon_to_ctkimage(
+    "ban",
+    fill="white",
+    scale_to_width=14
+)
 
 ACTION_MAP = {
     "Відкрити файл": "open_file",
@@ -58,6 +100,7 @@ class CommandSettings(ctk.CTkFrame):
 
         self.cancel_button = ctk.CTkButton(
             self.footer,
+            image=cancel_icon,
             text="Скасувати",
             width=110,
             fg_color="transparent",
@@ -75,6 +118,7 @@ class CommandSettings(ctk.CTkFrame):
 
         self.save_button = ctk.CTkButton(
             self.footer,
+            image=save_icon,
             text="Зберегти",
             width=120,
             command=self.on_save,
@@ -123,6 +167,42 @@ class CommandSettings(ctk.CTkFrame):
                 f"Unsupported action type: {action['type']!r}"
             )
 
+        # Header actions
+        self.top_actions_frame = ctk.CTkFrame(
+            self.content_frame,
+            fg_color="transparent",
+        )
+        self.top_actions_frame.pack(
+            fill="x",
+            padx=20,
+            pady=(10, 0),
+        )
+
+        # Caption — far left
+        self.mode_label = ctk.CTkLabel(
+            self.top_actions_frame,
+            text="НОВА КОМАНДА" if is_new else "РЕДАГУВАННЯ КОМАНДИ",
+            text_color="gray60",
+            font=ctk.CTkFont(size=14),
+        )
+        self.mode_label.pack(side="left")
+
+        # Delete button — far right
+        if not is_new:
+            self.delete_command_button = ctk.CTkButton(
+                self.top_actions_frame,
+                text="",
+                image=trash_icon,
+                width=28,
+                height=28,
+                fg_color="#8B1E24",
+                hover_color="#A5232B",
+                corner_radius=7,
+                border_spacing=0,
+                command=self.confirm_delete,
+            )
+            self.delete_command_button.pack(side="right")
+        
         # Header
         self.header_frame = ctk.CTkFrame(
             self.content_frame,
@@ -131,9 +211,17 @@ class CommandSettings(ctk.CTkFrame):
         self.header_frame.pack(
             fill="x",
             padx=20,
-            pady=(20, 5),
+            pady=(5, 5),
         )
 
+        # Star icon
+        ctk.CTkLabel(
+            self.header_frame,
+            text="",
+            image=star_icon,
+        ).pack(side="left", padx=(0, 5), pady=(0, 5))
+
+        # Name input
         self.name_input = UnderlinedEntry(
             self.header_frame,
             value=name,
@@ -145,17 +233,6 @@ class CommandSettings(ctk.CTkFrame):
             expand=True,
             padx=(0, 15),
         )
-
-        if not is_new:
-            self.delete_command_button = ctk.CTkButton(
-                self.header_frame,
-                text="Видалити",
-                command=self.confirm_delete,
-            )
-            self.delete_command_button.pack(
-                side="left",
-                padx=(0, 5),
-            )
 
         # Voice phrases
         self.string_editor = PhraseListEditor(
@@ -172,8 +249,10 @@ class CommandSettings(ctk.CTkFrame):
         # Action type
         ctk.CTkLabel(
             self.content_frame,
-            font=ctk.CTkFont(weight="bold"),
-            text="Тип дії:",
+            font=ctk.CTkFont(weight="bold", size=14),
+            text=" Дія:",
+            image=code_icon,
+            compound="left",
         ).pack(anchor="w", padx=20, pady=(10, 0))
 
         self.action_type_var = ctk.StringVar(value=action_label)
@@ -187,7 +266,7 @@ class CommandSettings(ctk.CTkFrame):
         self.action_type_dropdown.pack(
             anchor="w",
             padx=20,
-            pady=5,
+            pady=(0, 15),
         )
 
         # Action-specific property
@@ -232,11 +311,15 @@ class CommandSettings(ctk.CTkFrame):
         if property_key is None:
             return
 
+        label_icon = folder_icon if label_text == "Шлях" else link_icon
+
         # Label
         ctk.CTkLabel(
             self.property_frame, 
             font=ctk.CTkFont(weight="bold"),
-            text=f"{label_text}:",
+            text=f" {label_text}:",
+            image=label_icon,
+            compound="left",
         ).pack(anchor="w", padx=20, pady=(5, 0))
 
         # Input and optional Browse button
@@ -272,6 +355,7 @@ class CommandSettings(ctk.CTkFrame):
         if property_key == "path":
             ctk.CTkButton(
                 input_frame,
+                image=folder_icon,
                 text="Пошук...",
                 width=80,
                 command=self.browse_file,

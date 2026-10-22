@@ -1,5 +1,24 @@
 import customtkinter as ctk
+from ctkfontawesome import icon_to_ctkimage
 from underlined_entry import UnderlinedEntry
+
+add_icon = icon_to_ctkimage(
+    "plus",
+    fill="#FFFFFF",
+    scale_to_width=14
+)
+
+microphone_icon = icon_to_ctkimage(
+    "microphone",
+    fill="white",
+    scale_to_width=12
+)
+
+circle_minus_icon = icon_to_ctkimage(
+    "circle-minus",
+    fill="white",
+    scale_to_width=12
+)
 
 class PhraseListEditor(ctk.CTkFrame):
     def __init__(self, master, values=None, on_change=None, **kwargs):
@@ -12,8 +31,10 @@ class PhraseListEditor(ctk.CTkFrame):
 
         ctk.CTkLabel(
             self,
-            text="Фрази:",
-            font=ctk.CTkFont(weight="bold"),
+            text=" Фрази:",
+            font=ctk.CTkFont(weight="bold", size=14),
+            image=microphone_icon,
+            compound="left",
         ).pack(anchor="w", pady=(15, 5))
 
         self.rows_frame = ctk.CTkFrame(
@@ -24,7 +45,8 @@ class PhraseListEditor(ctk.CTkFrame):
 
         self.add_button = ctk.CTkButton(
             self,
-            text="+ Додати фразу",
+            image=add_icon,
+            text="Додати фразу",
             command=self.add_string,
         )
         self.add_button.pack(anchor="w", pady=(5, 0))
@@ -59,11 +81,17 @@ class PhraseListEditor(ctk.CTkFrame):
 
         delete_button = ctk.CTkButton(
             row,
-            text="Видалити",
-            width=60,
+            text="",
+            fg_color="#C62828",
+            hover_color="#E53935",
+            image=circle_minus_icon,
+            width=28,
+            height=28,
             command=lambda: self.delete_string(row),
         )
-        delete_button.pack(side="right")
+        delete_button.pack(
+            side="right"
+        )
 
         self.entries.append((row, entry))
 
