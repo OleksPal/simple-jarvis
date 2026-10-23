@@ -25,7 +25,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("Jarvis - Редактор Команд")
+        self.title("Jarvis")
         self.geometry("950x600")
         self.minsize(800, 500)
 
@@ -33,6 +33,46 @@ class App(ctk.CTk):
         self.commands = load_commands(COMMANDS_PATH)
         self.rows = {}
         self.selected_command = None
+
+        # Create tabs
+        self.tabview = ctk.CTkTabview(
+            self,
+            corner_radius=10,
+            border_width=1,
+
+            segmented_button_font=ctk.CTkFont(
+                family="Arial",
+                size=15,
+                weight="bold",
+            ),
+
+            segmented_button_fg_color="#1E1E1E",
+            segmented_button_selected_color="#2563EB",
+            segmented_button_selected_hover_color="#1D4ED8",
+            segmented_button_unselected_color="#2B2B2B",
+            segmented_button_unselected_hover_color="#3B3B3B",
+
+            text_color="#FFFFFF",
+            anchor="nw",
+        )
+
+        self.tabview.pack(
+            fill="both",
+            expand=True,
+            padx=10,
+            pady=10,
+        )
+
+        self.tabview._segmented_button.configure(
+            font=ctk.CTkFont(
+                family="Arial",
+                size=15,
+                weight="bold",
+            )
+        )
+
+        self.command_center_tab = self.tabview.add("Центр керування")
+        self.commands_tab = self.tabview.add("Команди")        
 
         # Build the interface
         self._configure_layout()
@@ -48,13 +88,12 @@ class App(ctk.CTk):
             self.select_command(next(iter(self.commands)))
     
     def _configure_layout(self):
-        self.grid_columnconfigure(0, weight=0, minsize=320)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-
+        self.commands_tab.grid_columnconfigure(0, weight=0, minsize=320)
+        self.commands_tab.grid_columnconfigure(1, weight=1)
+        self.commands_tab.grid_rowconfigure(0, weight=1)
     
     def _create_command_list(self):
-        self.command_container = ctk.CTkFrame(self)
+        self.command_container = ctk.CTkFrame(self.commands_tab)
 
         self.command_container.grid(
             row=0,
@@ -109,7 +148,7 @@ class App(ctk.CTk):
     
     def _create_settings_panel(self):
         self.settings_container = ctk.CTkFrame(
-            self,
+            self.commands_tab,
             fg_color="transparent",
         )
 
