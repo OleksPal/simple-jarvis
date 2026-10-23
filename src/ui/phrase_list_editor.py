@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from ctkfontawesome import icon_to_ctkimage
-from underlined_entry import UnderlinedEntry
+from src.ui.underlined_entry import UnderlinedEntry
 
 add_icon = icon_to_ctkimage(
     "plus",

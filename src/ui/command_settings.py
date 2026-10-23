@@ -4,8 +4,8 @@ from ctkfontawesome import icon_to_ctkimage
 from tkinter import filedialog
 from CTkMessagebox import CTkMessagebox
 
-from phrase_list_editor import PhraseListEditor
-from underlined_entry import UnderlinedEntry
+from src.ui.phrase_list_editor import PhraseListEditor
+from src.ui.underlined_entry import UnderlinedEntry
 
 star_icon = icon_to_ctkimage(
     "star",

@@ -1,8 +1,8 @@
 import customtkinter as ctk
 from ctkfontawesome import icon_to_ctkimage
 from pathlib import Path
-from command_row import CommandRow
-from command_settings import CommandSettings
+from src.ui.command_row import CommandRow
+from src.ui.command_settings import CommandSettings
 from src.command_manager import load_commands, save_commands
 
 COMMANDS_PATH = Path("config/commands.json")
@@ -201,7 +201,6 @@ class App(ctk.CTk):
         self.select_command(name)
 
         return True
-
     
     def edit_command(self, old_name, new_name, command):
         new_name = new_name.strip()
@@ -253,7 +252,6 @@ class App(ctk.CTk):
         self.select_command(new_name)
 
         return True
-
 
     def delete_command(self, name):
         if not name:
