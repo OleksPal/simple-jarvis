@@ -5,6 +5,10 @@ from src.ui.command_row import CommandRow
 from src.ui.command_settings import CommandSettings
 from src.command_manager import load_commands, save_commands
 
+from src.logger import setup_logger
+
+logger = setup_logger()
+
 COMMANDS_PATH = Path("config/commands.json")
 
 ACTION_MAP = {
@@ -86,6 +90,8 @@ class App(ctk.CTk):
         # Select the first command
         if self.commands:
             self.select_command(next(iter(self.commands)))
+
+        logger.info("Starting Jarvis")
     
     def _configure_layout(self):
         self.commands_tab.grid_columnconfigure(0, weight=0, minsize=320)

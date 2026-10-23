@@ -1,5 +1,8 @@
 import customtkinter as ctk
 from ctkfontawesome import icon_to_ctkimage
+from src.logger import get_logger
+
+logger = get_logger(__name__)
 
 star_icon = icon_to_ctkimage(
     "star",
@@ -106,6 +109,7 @@ class CommandRow(ctk.CTkFrame):
             self.on_select(self.name)
 
     def _on_toggle(self):
+        logger.info("Switch on/off")
         if self.on_toggle:
             self.on_toggle(
                 self.name,
