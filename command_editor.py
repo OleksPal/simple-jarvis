@@ -6,6 +6,7 @@ from src.ui.command_settings import CommandSettings
 from src.command_manager import load_commands, save_commands
 
 from src.logger import setup_logger
+from src.ui.log_console import LogConsole
 
 logger = setup_logger()
 
@@ -91,7 +92,48 @@ class App(ctk.CTk):
         if self.commands:
             self.select_command(next(iter(self.commands)))
 
-        logger.info("Starting Jarvis")
+        # Create the live log console
+        self.log_console = LogConsole(
+            master=self.command_center_tab,
+            logger=logger,
+        )
+        self.log_console.pack(
+            fill="both",
+            expand=True,
+            padx=10,
+            pady=10,
+        )
+
+        logger.debug("Debugging command execution")
+        logger.info("Command executed successfully")
+        logger.warning("Configuration value is missing")
+        logger.error("Failed to open file")
+        logger.critical("Application encountered a critical error")
+        logger.debug("Debugging command execution")
+        logger.info("Command executed successfully")
+        logger.warning("Configuration value is missing")
+        logger.error("Failed to open file")
+        logger.critical("Application encountered a critical error")
+        logger.debug("Debugging command execution")
+        logger.info("Command executed successfully")
+        logger.warning("Configuration value is missing")
+        logger.error("Failed to open file")
+        logger.critical("Application encountered a critical error")
+        logger.debug("Debugging command execution")
+        logger.info("Command executed successfully")
+        logger.warning("Configuration value is missing")
+        logger.error("Failed to open file")
+        logger.critical("Application encountered a critical error")
+        logger.debug("Debugging command execution")
+        logger.info("Command executed successfully")
+        logger.warning("Configuration value is missing")
+        logger.error("Failed to open file")
+        logger.critical("Application encountered a critical error")
+        logger.debug("Debugging command execution")
+        logger.info("Command executed successfully")
+        logger.warning("Configuration value is missing")
+        logger.error("Failed to open file")
+        logger.critical("Application encountered a critical error")
     
     def _configure_layout(self):
         self.commands_tab.grid_columnconfigure(0, weight=0, minsize=320)
