@@ -171,7 +171,7 @@ while True:
             print(f"[{GREEN}OK{RESET}] Виконую: {command_name}")
             speak(voice, "Виконую")
 
-            execute_command(COMMANDS["commands"][command_name])
+            execute_command(COMMANDS[command_name])
 
         cleanup_memory()
 

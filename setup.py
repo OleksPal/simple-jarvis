@@ -161,7 +161,7 @@ if not commands_file_path.exists():
                     "запусти ютуб"
                 ],
                 "action": {
-                    "type": "browser",
+                    "type": "open_url",
                     "url": "https://www.youtube.com"
                 }
             },
@@ -172,7 +172,7 @@ if not commands_file_path.exists():
                     "запусти блокнот"
                 ],
                 "action": {
-                    "type": "program",
+                    "type": "open_file",
                     "path": "notepad.exe"
                 }
             },
