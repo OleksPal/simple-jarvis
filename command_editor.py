@@ -7,6 +7,7 @@ from src.command_manager import load_commands, save_commands
 
 from src.logger import setup_logger
 from src.ui.log_console import LogConsole
+from src.ui.assistant_control import AssistantControl
 
 logger = setup_logger()
 
@@ -65,7 +66,7 @@ class App(ctk.CTk):
             fill="both",
             expand=True,
             padx=10,
-            pady=10,
+            pady=5,
         )
 
         self.tabview._segmented_button.configure(
@@ -92,6 +93,19 @@ class App(ctk.CTk):
         if self.commands:
             self.select_command(next(iter(self.commands)))
 
+        # Create assistant control
+        self.assistant_control = AssistantControl(
+            master=self.command_center_tab,
+            on_start=self.start_assistant,
+            on_stop=self.stop_assistant,
+        )
+        
+        self.assistant_control.pack(
+            fill="x",
+            padx=10,
+            pady=10
+        )
+
         # Create the live log console
         self.log_console = LogConsole(
             master=self.command_center_tab,
@@ -100,8 +114,7 @@ class App(ctk.CTk):
         self.log_console.pack(
             fill="both",
             expand=True,
-            padx=10,
-            pady=10,
+            padx=10
         )
 
         logger.debug("Debugging command execution")
@@ -373,6 +386,14 @@ class App(ctk.CTk):
         for name in self.commands:
             if query in name.casefold():
                 self.rows[name].pack(fill="x", pady=3)
+
+    def start_assistant(self):
+        # TODO: Start your voice assistant backend.
+        pass
+
+    def stop_assistant(self):
+        # TODO: Stop your voice assistant backend.
+        pass
 
     @staticmethod
     def action_to_key(action_name):
