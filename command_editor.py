@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 
 from src.ui.command_row import CommandRow
 from src.ui.command_settings import CommandSettings
-from src.command_manager import load_commands, save_commands, get_phrases
+from src.command_manager import load_commands, load_enabled_commands, save_commands, get_phrases
 from src.logger import setup_logger
 from src.ui.log_console import LogConsole
 from src.ui.assistant_control import AssistantControl
@@ -46,7 +46,8 @@ class App(ctk.CTk):
         self.tray_icon = None
 
         # Application state
-        self.commands = load_commands(COMMANDS_PATH)
+        self.enabled_commands = load_enabled_commands(COMMANDS_PATH)
+        self.commands_for_edit = load_commands(COMMANDS_PATH)
         self.rows = {}
         self.selected_command = None
 
@@ -96,12 +97,12 @@ class App(ctk.CTk):
         self._create_settings_panel()
 
         # Populate command list
-        for name, data in self.commands.items():
+        for name, data in self.commands_for_edit.items():
             self._create_command_row(name, data)
 
         # Select the first command
-        if self.commands:
-            self.select_command(next(iter(self.commands)))
+        if self.commands_for_edit:
+            self.select_command(next(iter(self.commands_for_edit)))
 
         # Create assistant control
         self.assistant_control = AssistantControl(
@@ -243,15 +244,19 @@ class App(ctk.CTk):
         self.show_settings(name)
 
     def toggle_command(self, name, enabled):
-        self.commands[name]["action"]["enabled"] = enabled
+        self.commands_for_edit[name]["action"]["enabled"] = enabled
 
-        save_commands(COMMANDS_PATH, self.commands)
+        save_commands(COMMANDS_PATH, self.commands_for_edit)
+
+        self.enabled_commands = load_enabled_commands(COMMANDS_PATH)
 
         if self.selected_command == name:
             self.show_settings(name)
 
+        self.restart_assistant_if_running()
+
     def show_settings(self, name):
-        command = self.commands[name]
+        command = self.commands_for_edit[name]
         self.settings_panel.show_settings(name, command)
 
     def add_new_command(self):
@@ -287,11 +292,11 @@ class App(ctk.CTk):
         if not name:
             return False
 
-        if name in self.commands:
+        if name in self.commands_for_edit:
             return False
 
-        self.commands[name] = command
-        save_commands(COMMANDS_PATH, self.commands)
+        self.commands_for_edit[name] = command
+        save_commands(COMMANDS_PATH, self.commands_for_edit)
 
         self._create_command_row(name, command)
 
@@ -303,17 +308,17 @@ class App(ctk.CTk):
     def edit_command(self, old_name, new_name, command):
         new_name = new_name.strip()
 
-        if not new_name or old_name not in self.commands:
+        if not new_name or old_name not in self.commands_for_edit:
             return False
 
-        if new_name != old_name and new_name in self.commands:
+        if new_name != old_name and new_name in self.commands_for_edit:
             return False
 
         # Preserve command order
         updated_commands = {
             (new_name if name == old_name else name):
                 (command if name == old_name else data)
-            for name, data in self.commands.items()
+            for name, data in self.commands_for_edit.items()
         }
 
         old_row = self.rows[old_name]
@@ -344,9 +349,9 @@ class App(ctk.CTk):
             for name in updated_commands:
                 self.rows[name].pack(fill="x", pady=3)
 
-        self.commands = updated_commands
+        self.commands_for_edit = updated_commands
 
-        save_commands(COMMANDS_PATH, self.commands)
+        save_commands(COMMANDS_PATH, self.commands_for_edit)
         self.select_command(new_name)
 
         self.restart_assistant_if_running()
@@ -356,21 +361,21 @@ class App(ctk.CTk):
         if not name:
             return
 
-        if name in self.commands:
-            del self.commands[name]
+        if name in self.commands_for_edit:
+            del self.commands_for_edit[name]
 
             # Remove the old entry and its row
             old_row = self.rows.pop(name, None)
             if old_row:
                 old_row.destroy()
 
-            if self.commands:
-                self.select_command(next(iter(self.commands)))
+            if self.commands_for_edit:
+                self.select_command(next(iter(self.commands_for_edit)))
             else:
                 self.selected_command = None
                 self.settings_panel.show_empty_settings()
 
-            save_commands(COMMANDS_PATH, self.commands)
+            save_commands(COMMANDS_PATH, self.commands_for_edit)
             self.restart_assistant_if_running()
         else:
             return
@@ -383,7 +388,7 @@ class App(ctk.CTk):
             row.pack_forget()
 
         # Show matching rows in their original order
-        for name in self.commands:
+        for name in self.commands_for_edit:
             if query in name.casefold():
                 self.rows[name].pack(fill="x", pady=3)
 
@@ -490,7 +495,7 @@ class App(ctk.CTk):
 
             # Rebuild command phrases for each run, since commands may
             # have been added, edited, or deleted in the UI.
-            commands = dict(self.commands)
+            commands = load_enabled_commands(COMMANDS_PATH)
             phrases = get_phrases(commands)
 
             encoded_options = init_utils.setup_encoded_phrases(

@@ -109,7 +109,6 @@ class CommandRow(ctk.CTkFrame):
             self.on_select(self.name)
 
     def _on_toggle(self):
-        logger.info("Switch on/off")
         if self.on_toggle:
             self.on_toggle(
                 self.name,

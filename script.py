@@ -19,7 +19,7 @@ from src.voice_recognition import transcribe, create_speech_recognition_model
 from src.utils import RED, GREEN, RESET, cleanup_memory
 from src.tts import speak
 
-from src.command_manager import load_commands, execute_command, get_phrases
+from src.command_manager import load_enabled_commands, execute_command, get_phrases
 from src.command_resolver import encode_options, get_command
 
 print("Запускаю Jarvis...")
@@ -57,7 +57,7 @@ COMMANDS = []
 commands_path = Path("config/commands.json")
 
 if commands_path.exists():
-    COMMANDS = load_commands("config/commands.json")
+    COMMANDS = load_enabled_commands("config/commands.json")
 else:
     print("Відсутній файл команд для Jarvis. Спочатку запустіть файл setup.py.")
     input("Натисніть ENTER для виходу...")
