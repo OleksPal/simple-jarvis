@@ -4,18 +4,18 @@ import customtkinter as ctk
 
 class AssistantControl(ctk.CTkFrame):
     STATUS_CONFIG = {
-        "Stopped": ("#9CA3AF", "Start", "#16A34A"),
-        "Initializing...": ("#60A5FA", "Starting...", "#374151"),
-        "Listening": ("#4ADE80", "Stop", "#DC2626"),
-        "Processing": ("#60A5FA", "Stop", "#DC2626"),
-        "Speaking": ("#C084FC", "Stop", "#DC2626"),
-        "Stopping...": ("#FBBF24", "Stopping...", "#374151"),
-        "Error": ("#F87171", "Retry", "#16A34A"),
+        "Зупинено": ("#9CA3AF", "Start", "#16A34A"),
+        "Ініціалізація...": ("#60A5FA", "Starting...", "#374151"),
+        "Слухаю": ("#4ADE80", "Stop", "#DC2626"),
+        "Обробляю": ("#60A5FA", "Stop", "#DC2626"),
+        "Говорю": ("#C084FC", "Stop", "#DC2626"),
+        "Зупиняюсь...": ("#FBBF24", "Зупиняюсь...", "#374151"),
+        "Помилка": ("#F87171", "Retry", "#16A34A"),
     }
 
     BUSY_STATES = {
-        "Initializing...",
-        "Stopping...",
+        "Ініціалізація...",
+        "Зупиняюсь...",
     }
 
     def __init__(
@@ -36,7 +36,7 @@ class AssistantControl(ctk.CTkFrame):
 
         self.on_start = on_start
         self.on_stop = on_stop
-        self.status = "Stopped"
+        self.status = "Зупинено"
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=0)
@@ -105,7 +105,7 @@ class AssistantControl(ctk.CTkFrame):
             pady=14,
         )
 
-        self.set_status("Stopped")
+        self.set_status("Зупинено")
 
     def set_status(self, status):
         if status not in self.STATUS_CONFIG:
@@ -122,7 +122,7 @@ class AssistantControl(ctk.CTkFrame):
             text_color=color,
         )
 
-        busy = status in {"Initializing...", "Stopping..."}
+        busy = status in {"Ініціалізація...", "Зупиняюсь..."}
 
         self.control_button.configure(
             text=button_text,
@@ -130,18 +130,18 @@ class AssistantControl(ctk.CTkFrame):
             fg_color=button_color,
             hover_color=(
                 button_color if busy else
-                "#15803D" if status in {"Stopped", "Error"} else
+                "#15803D" if status in {"Зупинено", "Помилка"} else
                 "#B91C1C"
             ),
         )
 
     def _toggle(self):
-        if self.status in {"Initializing...", "Stopping..."}:
+        if self.status in {"Ініціалізація...", "Зупиняюсь..."}:
             return
 
-        if self.status in {"Stopped", "Error"}:
-            self.set_status("Initializing...")
+        if self.status in {"Зупинено", "Помилка"}:
+            self.set_status("Ініціалізація...")
             self.on_start()
         else:
-            self.set_status("Stopping...")
+            self.set_status("Зупиняюсь...")
             self.on_stop()
