@@ -3,10 +3,12 @@ from ctkfontawesome import icon_to_ctkimage
 from pathlib import Path
 import threading
 import queue
+import pystray
+from PIL import Image, ImageDraw
+
 from src.ui.command_row import CommandRow
 from src.ui.command_settings import CommandSettings
 from src.command_manager import load_commands, save_commands, get_phrases
-
 from src.logger import setup_logger
 from src.ui.log_console import LogConsole
 from src.ui.assistant_control import AssistantControl
@@ -39,6 +41,9 @@ class App(ctk.CTk):
         self.title("Jarvis")
         self.geometry("950x600")
         self.minsize(800, 500)
+
+        self.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
+        self.tray_icon = None
 
         # Application state
         self.commands = load_commands(COMMANDS_PATH)
@@ -565,7 +570,60 @@ class App(ctk.CTk):
     @staticmethod
     def key_to_action(action_key):
         """Convert internal key to display name."""
-        return {value: key for key, value in ACTION_MAP.items()}.get(action_key)      
+        return {value: key for key, value in ACTION_MAP.items()}.get(action_key)
+
+    def hide_to_tray(self):
+        # Hide the window instead of closing it
+        self.withdraw()
+
+        if self.tray_icon is None:
+            threading.Thread(
+                target=self.create_tray_icon,
+                daemon=True
+            ).start()
+
+    def create_tray_icon(self):
+        # Create a simple tray icon image
+        image = Image.new("RGB", (64, 64), (30, 144, 255))
+        draw = ImageDraw.Draw(image)
+        draw.ellipse((12, 12, 52, 52), fill="white")
+
+        menu = pystray.Menu(
+            pystray.MenuItem(
+                "Відкрити",
+                self.show_window,
+                default=True
+            ),
+            pystray.MenuItem(
+                "Вийти",
+                self.exit_app
+            )
+        )
+
+        self.tray_icon = pystray.Icon(
+            "my_app",
+            image,
+            "Jarvis",
+            menu
+        )
+
+        self.tray_icon.run()
+
+    def show_window(self, icon=None, item=None):
+        # Schedule Tkinter operations on its main thread
+        self.after(0, self.restore_window)
+
+    def restore_window(self):
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def exit_app(self, icon=None, item=None):
+        # Stop the tray icon and close the application
+        if self.tray_icon:
+            self.tray_icon.stop()
+
+        self.after(0, self.destroy)
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("dark")
