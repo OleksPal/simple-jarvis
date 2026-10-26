@@ -1,5 +1,8 @@
 import customtkinter as ctk
 from ctkfontawesome import icon_to_ctkimage
+from src.logger import get_logger
+
+logger = get_logger(__name__)
 
 star_icon = icon_to_ctkimage(
     "star",

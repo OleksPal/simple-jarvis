@@ -18,7 +18,10 @@ def record_audio(
     silence_duration,
     pre_speech_duration,
     start_timeout=5.0,
+    stop_event=None,
 ):
+    """Record speech until silence, timeout, or stop."""
+
     audio_queue = queue.Queue()
 
     chunk_size = round(
@@ -29,12 +32,15 @@ def record_audio(
         if status:
             print("Статус аудіо:", status)
 
+        if stop_event is not None and stop_event.is_set():
+            return
+
         chunk = indata[:, 0].astype(np.float32) / 32768.0
         audio_queue.put(chunk)
 
     pre_chunks = max(
         1,
-        round(pre_speech_duration * sample_rate / chunk_size)
+        round(pre_speech_duration * sample_rate / chunk_size),
     )
 
     pre_buffer = []
@@ -53,12 +59,16 @@ def record_audio(
         callback=callback,
     ):
         while True:
-            # Timeout if speech has not started.
+            if stop_event is not None and stop_event.is_set():
+                return np.array([], dtype=np.float32)
+
             if not speech_started:
                 elapsed = time.monotonic() - listening_started
 
                 if elapsed >= start_timeout:
-                    print("Jarvis: Час очікування команди вичерпано.")
+                    print(
+                        "Jarvis: Час очікування команди вичерпано."
+                    )
                     return np.array([], dtype=np.float32)
 
             try:
@@ -66,14 +76,20 @@ def record_audio(
             except queue.Empty:
                 continue
 
+            if stop_event is not None and stop_event.is_set():
+                return np.array([], dtype=np.float32)
+
             audio_16k = prepare_vad_audio(chunk, sample_rate)
             audio_16k = audio_16k.float()
 
             with torch.no_grad():
                 probability = vad_model(
                     audio_16k,
-                    VAD_SAMPLE_RATE
+                    VAD_SAMPLE_RATE,
                 ).item()
+
+            if stop_event is not None and stop_event.is_set():
+                return np.array([], dtype=np.float32)
 
             is_speech = probability >= vad_threshold
 
@@ -97,6 +113,9 @@ def record_audio(
                 silence_start = time.monotonic()
             elif time.monotonic() - silence_start >= silence_duration:
                 break
+
+    if stop_event is not None and stop_event.is_set():
+        return np.array([], dtype=np.float32)
 
     if not speech_audio:
         return np.array([], dtype=np.float32)
@@ -140,24 +159,23 @@ def wait_for_wake_word(
     sample_rate: int,
     channels: int = 1,
     threshold: float = 0.5,
+    stop_event=None,
 ):
-    """Listen continuously until the wake word is detected."""
+    """Listen for a wake word until detected or stopped."""
 
     audio_queue = queue.Queue()
 
-    # openWakeWord expects 1280 samples at 16 kHz.
-    wake_chunk_size = round(
-        1280 * sample_rate / 16000
-    )
+    wake_chunk_size = round(1280 * sample_rate / 16000)
 
     def callback(indata, frames, time_info, status):
         if status:
             print("Статус аудіо:", status)
 
-        # Capture mono int16 PCM audio.
+        if stop_event is not None and stop_event.is_set():
+            return
+
         audio_queue.put(indata[:, 0].copy())
 
-    # Buffer resampled audio into exact 1280-sample frames.
     audio_buffer = np.array([], dtype=np.int16)
 
     with sd.InputStream(
@@ -168,10 +186,12 @@ def wait_for_wake_word(
         blocksize=wake_chunk_size,
         callback=callback,
     ):
-        while True:
-            chunk = audio_queue.get()
+        while stop_event is None or not stop_event.is_set():
+            try:
+                chunk = audio_queue.get(timeout=0.1)
+            except queue.Empty:
+                continue
 
-            # Convert microphone audio to 16 kHz.
             audio_float = chunk.astype(np.float32) / 32768.0
 
             audio_16k = torchaudio.functional.resample(
@@ -191,6 +211,9 @@ def wait_for_wake_word(
             )
 
             while len(audio_buffer) >= 1280:
+                if stop_event is not None and stop_event.is_set():
+                    return False
+
                 frame = audio_buffer[:1280]
                 audio_buffer = audio_buffer[1280:]
 
@@ -198,4 +221,6 @@ def wait_for_wake_word(
 
                 if scores and max(scores.values()) >= threshold:
                     wakeword_model.reset()
-                    return
+                    return True
+
+    return False

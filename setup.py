@@ -140,7 +140,7 @@ if not config_file_path.exists():
         "vad_threshold": 0.5,
         "silence_duration": 0.7,
         "pre_speech_duration": 0.3
-    }    
+    }     
 
     with open("config/jarvis.config.json", "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
@@ -162,6 +162,7 @@ if not commands_file_path.exists():
                 ],
                 "action": {
                     "type": "open_url",
+                    "enabled": true,
                     "url": "https://www.youtube.com"
                 }
             },
@@ -173,6 +174,7 @@ if not commands_file_path.exists():
                 ],
                 "action": {
                     "type": "open_file",
+                    "enabled": true,
                     "path": "notepad.exe"
                 }
             },
@@ -183,7 +185,8 @@ if not commands_file_path.exists():
                     "закрити"
                 ],
                 "action": {
-                    "type": "close_jarvis"
+                    "type": "close_jarvis",
+                    "enabled": true
                 }
             }
         }

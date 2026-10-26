@@ -11,6 +11,16 @@ def load_commands(filename):
 
     return file_content["commands"]
 
+def load_enabled_commands(filename):
+    with open(filename, "r", encoding="utf-8") as file:
+        config = json.load(file)
+
+    return {
+        name: item
+        for name, item in config["commands"].items()
+        if item["action"].get("enabled", False) is True
+    }
+
 def save_commands(filename, commands):
     file_content = {
         "commands": commands
