@@ -68,8 +68,8 @@ input("Натисніть ENTER для початку тесту...")
 print()
 print("Приготуйтеся...")
 time.sleep(2)
-
-results = record_from_endpoints(endpoints, OUTPUT_DIR)
+print("Cкажи: Привіт це тест мікрофона Я перевіряю якість запису голосу")
+results = record_from_endpoints(endpoints, OUTPUT_DIR) #use preloaded vad
 
 print()
 print("=" * 100)
@@ -129,21 +129,20 @@ Path("config").mkdir(parents=True, exist_ok=True)
 
 config_file_path = Path("config/jarvis.config.json")
 
-if not config_file_path.exists():
-    data = {
-        "microphone_id": int(best_microphone_id),
-        "use_cuda": is_cuda_gpu_enable(),
-        "speech_recognition_model": "small",
-        "sample_rate": best_microphone["sample_rate"],
-        "vad_threshold": 0.5,
-        "silence_duration": 0.7,
-        "pre_speech_duration": 0.3
-    }     
+data = {
+    "microphone_id": int(best_microphone_id),
+    "use_cuda": is_cuda_gpu_enable(),
+    "speech_recognition_model": "small",
+    "sample_rate": best_microphone["sample_rate"],
+    "vad_threshold": 0.5,
+    "silence_duration": 0.7,
+    "pre_speech_duration": 0.3
+}     
 
-    with open("config/jarvis.config.json", "w", encoding="utf-8") as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
+with open("config/jarvis.config.json", "w", encoding="utf-8") as file:
+    json.dump(data, file, ensure_ascii=False, indent=4)
 
-    print(f"[{GREEN}OK{RESET}] Створено конфіг файл: config/jarvis.config.json")
+print(f"[{GREEN}OK{RESET}] Створено конфіг файл: {config_file_path}")
 
 commands_file_path = Path("config/commands.json")
 

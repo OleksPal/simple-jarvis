@@ -13,6 +13,7 @@ from silero_vad import load_silero_vad
 from sentence_transformers import SentenceTransformer
 from openwakeword.model import Model as WakeWordModel
 from dataclasses import dataclass
+import torch
 
 from src.voice_recording import record_audio, wait_for_wake_word
 from src.voice_recognition import transcribe, create_speech_recognition_model
@@ -54,12 +55,22 @@ def load_setup(config_path):
             
     return config
 
-def setup_vad():
-    vad_model = load_silero_vad(onnx=False)
+def setup_vad(vad_path: Path):
+    """Load the local Silero VAD TorchScript model."""
+
+    if not vad_path.is_file():
+        raise FileNotFoundError(
+            f"Silero VAD model not found: {vad_path}"
+        )
+
+    vad_model = torch.jit.load(
+        str(vad_path),
+        map_location="cpu",
+    )
     vad_model.eval()
 
-    logger.info("Модель для шумоподавлення завантажено успішно.")
-        
+    logger.info("Локальну модель Silero VAD завантажено успішно")
+
     return vad_model
 
 def setup_speech_recognition(speech_recognition_model_size):

@@ -19,6 +19,7 @@ logger = setup_logger()
 
 COMMANDS_PATH = Path("config/commands.json")
 CONFIG_PATH = Path("config/jarvis.config.json")
+VAD_PATH = Path("resources/vad/silero_vad.jit")
 
 ACTION_MAP = {
     "Відкрити файл": "open_file",
@@ -444,7 +445,7 @@ class App(ctk.CTk):
 
         # Voice activity detection
         if "vad_model" not in resources:
-            resources["vad_model"] = init_utils.setup_vad()
+            resources["vad_model"] = init_utils.setup_vad(VAD_PATH)
 
         if should_stop():
             return None
