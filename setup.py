@@ -51,7 +51,7 @@ if not endpoints:
     exit()
 
 print("Доступні мікрофони:")
-print("-" * 100)
+print("-" * 20)
 
 for endpoint in endpoints:
     print(
@@ -61,7 +61,7 @@ for endpoint in endpoints:
         f"{endpoint['sample_rate']} Hz"
     )
 
-print("-" * 100)
+print("-" * 20)
 print()
 
 input("Натисніть ENTER для початку тесту...")
@@ -72,9 +72,9 @@ print("Cкажи: Привіт це тест мікрофона Я переві�
 results = record_from_endpoints(endpoints, OUTPUT_DIR) #use preloaded vad
 
 print()
-print("=" * 100)
+print("=" * 20)
 print("Результати")
-print("=" * 100)
+print("=" * 20)
 
 for endpoint in endpoints:
     device_id = endpoint["index"]

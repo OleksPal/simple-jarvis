@@ -50,7 +50,8 @@ def find_best_microphone(speech_recognition_model, file_list, etalon_text, resol
     )
 
     for file in file_list:
-        print("\n------------------------------")
+        print()
+        print("-" * 20)
         print(f"Розшифровка: {file}")
         start_time = time.perf_counter()
 
@@ -86,17 +87,15 @@ def find_best_microphone(speech_recognition_model, file_list, etalon_text, resol
         print()
         print("Розшифровка завершена")
         print(f"Час: {elapsed:.2f} секунд")
-        print("------------------------------")
+        print("-" * 20)
 
     return best_microphone_id
 
 def transcribe(speech_recognition_model, audio):
     if audio is None:
-        print("Звук не був записаний.")
         return []
     
     if isinstance(audio, np.ndarray) and len(audio) == 0:
-        print("Звук не був записаний.")
         return []
     
     segments, info = speech_recognition_model.transcribe(
