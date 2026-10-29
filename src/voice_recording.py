@@ -13,7 +13,6 @@ def record_audio(
     vad_model,
     device_id: int,
     sample_rate,
-    channels,
     vad_threshold,
     silence_duration,
     pre_speech_duration,
@@ -174,7 +173,6 @@ def wait_for_wake_word(
     wakeword_model,
     device_id: int,
     sample_rate: int,
-    channels: int = 1,
     threshold: float = 0.5,
     stop_event=None,
 ):

@@ -17,7 +17,6 @@ import torch
 VAD_SAMPLE_RATE = 16000
 VAD_CHUNK_SIZE = 512
 
-CHANNELS = 1
 RECORD_SECONDS = 5
 
 VAD_THRESHOLD = 0.5
@@ -54,7 +53,6 @@ def get_input_endpoints():
         wasapi_devices.append({
             "index": index,
             "name": device["name"],
-            "channels": device["max_input_channels"],
             "sample_rate": int(
                 device["default_samplerate"] or 44100
             ),

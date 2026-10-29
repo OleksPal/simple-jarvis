@@ -32,7 +32,6 @@ class SpeechConfig:
     use_cuda: bool = False
     model_size: str = "small"
     sample_rate: int = 44100
-    channels: int = 1
     vad_threshold: float = 0.5
     silence_duration: float = 0.7
     pre_speech_duration: float = 0.3
@@ -46,7 +45,6 @@ def load_setup(config_path):
         use_cuda=data.get("use_cuda", False), 
         model_size=data.get("speech_recognition_model", "small"), 
         sample_rate=data.get("sample_rate", 44100), 
-        channels=data.get("channels", 1), 
         vad_threshold=data.get("vad_threshold", 0.5), 
         silence_duration=data.get("silence_duration", 0.7), 
         pre_speech_duration=data.get("pre_speech_duration", 0.3)
@@ -136,7 +134,6 @@ def start_loop(
             wakeword_model=wakeword_model,
             device_id=config.microphone_id,
             sample_rate=config.sample_rate,
-            channels=config.channels,
             threshold=0.5,
             stop_event=stop_event,
         )
@@ -176,7 +173,6 @@ def start_loop(
                 vad_model,
                 config.microphone_id,
                 config.sample_rate,
-                config.channels,
                 config.vad_threshold,
                 config.silence_duration,
                 config.pre_speech_duration,

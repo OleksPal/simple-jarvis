@@ -58,7 +58,6 @@ for endpoint in endpoints:
         f"[{endpoint['index']:>2}] "
         f"{endpoint['name']} "
         f"({endpoint['hostapi']}) "
-        f"{endpoint['channels']} ch, "
         f"{endpoint['sample_rate']} Hz"
     )
 
@@ -136,7 +135,6 @@ if not config_file_path.exists():
         "use_cuda": is_cuda_gpu_enable(),
         "speech_recognition_model": "small",
         "sample_rate": best_microphone["sample_rate"],
-        "channels": best_microphone["channels"],
         "vad_threshold": 0.5,
         "silence_duration": 0.7,
         "pre_speech_duration": 0.3
