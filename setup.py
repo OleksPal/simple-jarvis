@@ -162,7 +162,7 @@ if not commands_file_path.exists():
                 ],
                 "action": {
                     "type": "open_url",
-                    "enabled": true,
+                    "enabled": True,
                     "url": "https://www.youtube.com"
                 }
             },
@@ -174,7 +174,7 @@ if not commands_file_path.exists():
                 ],
                 "action": {
                     "type": "open_file",
-                    "enabled": true,
+                    "enabled": True,
                     "path": "notepad.exe"
                 }
             },
@@ -186,7 +186,7 @@ if not commands_file_path.exists():
                 ],
                 "action": {
                     "type": "close_jarvis",
-                    "enabled": true
+                    "enabled": True
                 }
             }
         }
