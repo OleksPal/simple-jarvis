@@ -4,13 +4,13 @@ import customtkinter as ctk
 
 class AssistantControl(ctk.CTkFrame):
     STATUS_CONFIG = {
-        "Зупинено": ("#9CA3AF", "Start", "#16A34A"),
-        "Ініціалізація...": ("#60A5FA", "Starting...", "#374151"),
-        "Слухаю": ("#4ADE80", "Stop", "#DC2626"),
-        "Обробляю": ("#60A5FA", "Stop", "#DC2626"),
-        "Говорю": ("#C084FC", "Stop", "#DC2626"),
+        "Зупинено": ("#9CA3AF", "Старт", "#16A34A"),
+        "Ініціалізація...": ("#60A5FA", "Запуск...", "#374151"),
+        "Слухаю": ("#4ADE80", "Стоп", "#DC2626"),
+        "Обробляю": ("#60A5FA", "Стоп", "#DC2626"),
+        "Говорю": ("#C084FC", "Стоп", "#DC2626"),
         "Зупиняюсь...": ("#FBBF24", "Зупиняюсь...", "#374151"),
-        "Помилка": ("#F87171", "Retry", "#16A34A"),
+        "Помилка": ("#F87171", "Перезавантажити", "#16A34A"),
     }
 
     BUSY_STATES = {
@@ -87,7 +87,7 @@ class AssistantControl(ctk.CTkFrame):
         # Right side: compact Start/Stop button.
         self.control_button = ctk.CTkButton(
             self,
-            text="Start",
+            text="Старт",
             width=85,
             height=32,
             font=ctk.CTkFont(

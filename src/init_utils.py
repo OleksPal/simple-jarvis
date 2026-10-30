@@ -13,6 +13,7 @@ from silero_vad import load_silero_vad
 from sentence_transformers import SentenceTransformer
 from openwakeword.model import Model as WakeWordModel
 from dataclasses import dataclass
+import torch
 
 from src.voice_recording import record_audio, wait_for_wake_word
 from src.voice_recognition import transcribe, create_speech_recognition_model
@@ -32,7 +33,6 @@ class SpeechConfig:
     use_cuda: bool = False
     model_size: str = "small"
     sample_rate: int = 44100
-    channels: int = 1
     vad_threshold: float = 0.5
     silence_duration: float = 0.7
     pre_speech_duration: float = 0.3
@@ -46,7 +46,6 @@ def load_setup(config_path):
         use_cuda=data.get("use_cuda", False), 
         model_size=data.get("speech_recognition_model", "small"), 
         sample_rate=data.get("sample_rate", 44100), 
-        channels=data.get("channels", 1), 
         vad_threshold=data.get("vad_threshold", 0.5), 
         silence_duration=data.get("silence_duration", 0.7), 
         pre_speech_duration=data.get("pre_speech_duration", 0.3)
@@ -56,12 +55,22 @@ def load_setup(config_path):
             
     return config
 
-def setup_vad():
-    vad_model = load_silero_vad(onnx=False)
+def setup_vad(vad_path: Path):
+    """Load the local Silero VAD TorchScript model."""
+
+    if not vad_path.is_file():
+        raise FileNotFoundError(
+            f"Модель виявлення голосу не знайдено: {vad_path}"
+        )
+
+    vad_model = torch.jit.load(
+        str(vad_path),
+        map_location="cpu",
+    )
     vad_model.eval()
 
-    logger.info("Модель для шумоподавлення завантажено успішно.")
-        
+    logger.info("Модель виявлення голосу завантажено успішно")
+
     return vad_model
 
 def setup_speech_recognition(speech_recognition_model_size):
@@ -82,7 +91,7 @@ def setup_sentence_transformer():
     MODEL_PATH = "resources/semantic_model"
     resolver_model = SentenceTransformer(MODEL_PATH, local_files_only=True)
 
-    logger.info("Перетворювач фраз завантажено успішно.")
+    logger.info("Розпізнавач команд завантажено успішно.")
 
     return resolver_model
 
@@ -94,7 +103,7 @@ def setup_encoded_phrases(resolver_model, phrases):
     return encoded_options
 
 def setup_wake_word():
-    WAKEWORD_DIR = Path("wakewords")
+    WAKEWORD_DIR = Path("resources/wakewords")
 
     WAKEWORD_PATH = WAKEWORD_DIR / "hey_jarvis.onnx"
     MELSPEC_PATH = WAKEWORD_DIR / "melspectrogram.onnx"
@@ -136,7 +145,6 @@ def start_loop(
             wakeword_model=wakeword_model,
             device_id=config.microphone_id,
             sample_rate=config.sample_rate,
-            channels=config.channels,
             threshold=0.5,
             stop_event=stop_event,
         )
@@ -149,6 +157,7 @@ def start_loop(
             break
 
         logger.info("Ключову фразу розпізнано!")
+        set_status("Говорю")
         speak(voice, "Слухаю")
 
         if stop_event is not None and stop_event.is_set():
@@ -176,7 +185,6 @@ def start_loop(
                 vad_model,
                 config.microphone_id,
                 config.sample_rate,
-                config.channels,
                 config.vad_threshold,
                 config.silence_duration,
                 config.pre_speech_duration,
