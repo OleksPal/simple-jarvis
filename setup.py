@@ -1,16 +1,30 @@
 import sys
 import subprocess
-from src.utils import is_cuda_gpu_enable, add_jarvis_to_startup, RED, GREEN, YELLOW, RESET
+from src.utils import is_cuda_gpu_enable, create_shortcut, RED, GREEN, YELLOW, RESET
+
+import os
+import warnings
+import logging
+
+# Disable Hugging Face and Transformers output
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+os.environ["HF_HUB_VERBOSITY"] = "error"
+
+warnings.filterwarnings("ignore")
+
+logging.disable(logging.CRITICAL)
 
 import time
 import json
-import os
 import urllib.request
 from pathlib import Path
 
+import torch
+import urllib.request
+
 from piper import PiperVoice
 from sentence_transformers import SentenceTransformer
-from openwakeword.utils import download_models
 
 from src.check_microphone import get_input_endpoints, record_from_endpoints
 from src.tts import speak
@@ -20,24 +34,55 @@ print("Розпочато налаштування Jarvis...")
 print()
 
 # ---------------------------------------------------------------------------
+# Download VAD
+# ---------------------------------------------------------------------------
+
+MODEL_PATH = Path("resources/vad/silero_vad.jit")
+
+MODEL_URL = (
+    "https://github.com/snakers4/silero-vad/raw/"
+    "master/src/silero_vad/data/silero_vad.jit"
+)
+
+MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+if not MODEL_PATH.is_file():
+    urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+
+vad_model = torch.jit.load(
+    str(MODEL_PATH),
+    map_location="cpu"
+)
+
+vad_model.eval()
+
+print(f"[{GREEN}OK{RESET}] Модель розпізнавання голосу готова до використання")
+
+# ---------------------------------------------------------------------------
 # Download semantic model
 # ---------------------------------------------------------------------------
 
-MODEL_PATH = "resources/semantic_model"
+MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_PATH = Path(__file__).resolve().parent / "resources" / "semantic_model"
 
-print("Початок завантаження семантичної моделі...")
-print()
+if (MODEL_PATH / "modules.json").is_file():
+    resolver_model = SentenceTransformer(
+        str(MODEL_PATH),
+        local_files_only=True
+    )
+else:
+    resolver_model = SentenceTransformer(MODEL_NAME)
+    resolver_model.save(str(MODEL_PATH))
 
-resolver_model = SentenceTransformer("all-MiniLM-L6-v2")
-resolver_model.save(MODEL_PATH)
-
-print()
-print(f"[{GREEN}OK{RESET}] Семантичну модель завантажено")
+print(f"[{GREEN}OK{RESET}] Модель розпізнавання команд готова до використання")
 print()
 
 # ---------------------------------------------------------------------------
 # Find the best microphone
 # ---------------------------------------------------------------------------
+
+print("Розпочато налаштування мікрофону...")
+print()
 
 OUTPUT_DIR = Path("microphone_test")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -51,7 +96,7 @@ if not endpoints:
     exit()
 
 print("Доступні мікрофони:")
-print("-" * 20)
+print("-" * 30)
 
 for endpoint in endpoints:
     print(
@@ -61,20 +106,22 @@ for endpoint in endpoints:
         f"{endpoint['sample_rate']} Hz"
     )
 
-print("-" * 20)
+print("-" * 30)
 print()
 
 input("Натисніть ENTER для початку тесту...")
 print()
 print("Приготуйтеся...")
+print()
+
 time.sleep(2)
-print("Cкажи: Привіт це тест мікрофона Я перевіряю якість запису голосу")
+print("Скажіть: Привіт це тест мікрофона. Я перевіряю якість запису голосу.")
 results = record_from_endpoints(endpoints, OUTPUT_DIR) #use preloaded vad
 
 print()
-print("=" * 20)
+print("=" * 30)
 print("Результати")
-print("=" * 20)
+print("=" * 30)
 
 for endpoint in endpoints:
     device_id = endpoint["index"]
@@ -88,10 +135,8 @@ for endpoint in endpoints:
 
     elif result.get("filename"):
         print(
-            f"[{GREEN}OK{RESET}]     {device_id}: "
-            f"{endpoint['name']} -> "
-            f"{result['filename']} "
-            f"({result['sample_rate']} Hz)"
+            f"[{GREEN}OK{RESET}] {device_id}: "
+            f"{endpoint['name']}"
         )
 
     else:
@@ -198,15 +243,43 @@ if not commands_file_path.exists():
 # Add Jarvis to Windows Startup
 # ---------------------------------------------------------------------------
 
-add_jarvis_to_startup()
+current_folder = Path(__file__).resolve().parent
+script_path = current_folder / "app.py"
 
+# Windows Startup folder
+startup_folder = (
+    Path(os.environ["APPDATA"])
+    / "Microsoft"
+    / "Windows"
+    / "Start Menu"
+    / "Programs"
+    / "Startup"
+)
+
+# Desktop folder
+desktop_folder = Path(os.environ["USERPROFILE"]) / "Desktop"
+
+# Create shortcuts
+create_shortcut(
+    startup_folder / "Jarvis.lnk",
+    script_path,
+    current_folder
+)
+
+create_shortcut(
+    desktop_folder / "Jarvis.lnk",
+    script_path,
+    current_folder
+)
+
+print(f"[{GREEN}OK{RESET}] Ярлик Jarvis додано на Робочий Стіл")
 print(f"[{GREEN}OK{RESET}] Jarvis додано до Windows автозапуск")
 
 # ---------------------------------------------------------------------------
 # Download wake phrase onnx
 # ---------------------------------------------------------------------------
 
-WAKEWORD_DIR = Path("wakewords")
+WAKEWORD_DIR = Path("resources/wakewords")
 WAKEWORD_DIR.mkdir(parents=True, exist_ok=True)
 
 MODELS = {
@@ -228,23 +301,17 @@ for filename, url in MODELS.items():
     path = WAKEWORD_DIR / filename
 
     if not path.is_file() or path.stat().st_size == 0:
-        print(f"[{GREEN}OK{RESET}] Downloading {filename}...")
-
         try:
             urllib.request.urlretrieve(url, str(path))
 
             if not path.is_file() or path.stat().st_size == 0:
-                raise RuntimeError(f"Download failed: {filename}")
-
-            print(f"[{GREEN}OK{RESET}] Downloaded {filename}.")
+                raise RuntimeError(f"Помилка завантаження: {filename}")
 
         except Exception:
             path.unlink(missing_ok=True)
             raise
-    else:
-        print(f"[{GREEN}OK{RESET}] {filename} already exists.")
 
-print()
+print(f"[{GREEN}OK{RESET}] Завантажено фразу пробудження")
 
 # ---------------------------------------------------------------------------
 # Download TTS voice
@@ -257,21 +324,21 @@ subprocess.run(
         "piper.download_voices",
         "uk_UA-mykyta-high",
         "--data-dir",
-        "tts",
+        "resources/tts",
     ], 
     stdout=subprocess.DEVNULL,
     stderr=subprocess.DEVNULL,
     check=True
 )
 
-voice = PiperVoice.load("tts/uk_UA-mykyta-high.onnx", use_cuda=is_cuda_gpu_enable())
+voice = PiperVoice.load("resources/tts/uk_UA-mykyta-high.onnx", use_cuda=is_cuda_gpu_enable())
 
 print(f"[{GREEN}OK{RESET}] Завантажено голос uk_UA-mykyta-high: tts/uk_UA-mykyta-high.onnx")
 print(f"[{GREEN}OK{RESET}] Відтворюється голос!")
 speak(voice, "Тест голосу")
 
 print()
-print("Налаштування завершено! Тепер можете запустити Jarvis за допомогою script.py")
+print("Налаштування завершено! Тепер можете запустити Jarvis за допомогою app.py, або через ярлик на робочому столі")
 print()
 input("Натисніть ENTER для виходу...")
 print()

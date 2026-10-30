@@ -18,6 +18,9 @@ from src.voice_recording import prepare_vad_audio
 VAD_SAMPLE_RATE = 16000
 VAD_CHUNK_SIZE = 512
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+VAD_PATH = PROJECT_ROOT / "resources" / "vad"
+
 # ---------------------------------------------------------------------------
 # Device discovery
 # ---------------------------------------------------------------------------
@@ -77,7 +80,7 @@ def get_input_endpoints():
 def record_from_endpoints(
     endpoints,
     output_dir,
-    vad_path="resources/vad",
+    vad_path=VAD_PATH,
     vad_threshold=0.5,
     silence_duration=1.0,
     pre_speech_duration=0.3,

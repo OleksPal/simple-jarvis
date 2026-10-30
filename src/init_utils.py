@@ -60,7 +60,7 @@ def setup_vad(vad_path: Path):
 
     if not vad_path.is_file():
         raise FileNotFoundError(
-            f"Silero VAD model not found: {vad_path}"
+            f"Модель виявлення голосу не знайдено: {vad_path}"
         )
 
     vad_model = torch.jit.load(
@@ -69,7 +69,7 @@ def setup_vad(vad_path: Path):
     )
     vad_model.eval()
 
-    logger.info("Локальну модель Silero VAD завантажено успішно")
+    logger.info("Модель виявлення голосу завантажено успішно")
 
     return vad_model
 
@@ -91,7 +91,7 @@ def setup_sentence_transformer():
     MODEL_PATH = "resources/semantic_model"
     resolver_model = SentenceTransformer(MODEL_PATH, local_files_only=True)
 
-    logger.info("Перетворювач фраз завантажено успішно.")
+    logger.info("Розпізнавач команд завантажено успішно.")
 
     return resolver_model
 
@@ -103,7 +103,7 @@ def setup_encoded_phrases(resolver_model, phrases):
     return encoded_options
 
 def setup_wake_word():
-    WAKEWORD_DIR = Path("wakewords")
+    WAKEWORD_DIR = Path("resources/wakewords")
 
     WAKEWORD_PATH = WAKEWORD_DIR / "hey_jarvis.onnx"
     MELSPEC_PATH = WAKEWORD_DIR / "melspectrogram.onnx"
