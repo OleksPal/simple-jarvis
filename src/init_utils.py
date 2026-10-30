@@ -157,6 +157,7 @@ def start_loop(
             break
 
         logger.info("Ключову фразу розпізнано!")
+        set_status("Говорю")
         speak(voice, "Слухаю")
 
         if stop_event is not None and stop_event.is_set():
