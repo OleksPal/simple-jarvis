@@ -81,7 +81,7 @@ def setup_speech_recognition(speech_recognition_model_size):
     return model
 
 def setup_tts(use_cuda: bool):
-    voice = PiperVoice.load("tts/uk_UA-mykyta-high.onnx", use_cuda=use_cuda)
+    voice = PiperVoice.load("resources/tts/uk_UA-mykyta-high.onnx", use_cuda=use_cuda)
 
     logger.info("Голос для озвучення завантажено успішно.")
     
